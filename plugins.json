@@ -4,7 +4,7 @@
     {
       "id": "danmaku_regex_filter",
       "name": "弹幕正则过滤规则预设",
-      "version": "1.1.0",
+      "version": "1.2.0",
       "description": "内置常用弹幕正则过滤规则，启用后自动屏蔽匹配的弹幕。可在配置中逐条开关规则。包含：刷屏重复、刷观看次数、日期考古、有人在看、纯关键词。",
       "author": "Retr0",
       "github": "https://github.com/AimesSoft/nipaplay-reload",
