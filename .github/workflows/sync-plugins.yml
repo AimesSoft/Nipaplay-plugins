@@ -1,15 +1,13 @@
 name: Sync plugins.json
 
 on:
-  pull_request_target:
-    types: [closed]
+  push:
     branches: [main]
     paths:
       - 'plugins/**'
 
 jobs:
   sync:
-    if: github.event.pull_request.merged == true
     runs-on: ubuntu-latest
     permissions:
       contents: write
@@ -21,9 +19,6 @@ jobs:
       - uses: actions/setup-python@v5
         with:
           python-version: '3.x'
-
-      - name: Validate plugin manifests
-        run: python scripts/sync_plugins_index.py --validate
 
       - name: Sync plugins index
         run: python scripts/sync_plugins_index.py

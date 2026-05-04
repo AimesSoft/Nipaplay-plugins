@@ -1,0 +1,34 @@
+name: Validate plugin
+
+on:
+  pull_request:
+    branches: [main]
+    paths:
+      - 'plugins/**/*.js'
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.head.sha }}
+          fetch-depth: 0
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.x'
+
+      - name: Restore main plugins.json for ID uniqueness check
+        run: git show origin/main:plugins.json > plugins.json 2>/dev/null || true
+
+      - name: Get changed JS files
+        id: changed
+        uses: tj-actions/changed-files@v45
+        with:
+          files: 'plugins/**/*.js'
+
+      - name: Validate plugin manifests
+        if: steps.changed.outputs.any_changed == 'true'
+        run: |
+          python scripts/sync_plugins_index.py --validate ${{ steps.changed.outputs.all_changed_files }}
