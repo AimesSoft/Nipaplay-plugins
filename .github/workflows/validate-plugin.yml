@@ -8,6 +8,7 @@ on:
 
 jobs:
   validate:
+    if: github.repository == 'AimesSoft/Nipaplay-plugins'
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
