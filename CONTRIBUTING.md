@@ -30,6 +30,44 @@
 - `pluginBlockWords` — 字符串数组，用于弹幕过滤。
 - `pluginUIEntries` — 数组，用于在设置页生成功能入口。
 - `pluginHandleUIAction(actionId)` — 函数，处理用户点击事件。
+- `pluginOnEvent(event)` — 函数，监听应用事件。
+- `pluginOnInitialize()` — 函数，插件启用时调用。
+- `pluginOnDestroy()` — 函数，插件禁用时调用。
+- `pluginOnResume()` — 函数，应用恢复时调用。
+- `pluginOnSuspend()` — 函数，应用挂起时调用。
+
+### 权限声明
+
+插件可以通过 `permissions` 字段声明需要的权限：
+
+```js
+const pluginManifest = {
+  id: 'my.plugin',
+  name: '我的插件',
+  version: '1.0.0',
+  minHostVersion: '1.11.0',
+  description: '描述',
+  author: '作者',
+  permissions: [
+    'player.control',
+    'danmaku.modify',
+    'ui.dialog'
+  ]
+};
+```
+
+支持的权限：
+
+| 权限 ID | 说明 |
+|---------|------|
+| `player.control` | 控制播放器（播放/暂停/跳转） |
+| `danmaku.modify` | 修改弹幕显示和过滤规则 |
+| `library.read` | 读取媒体库信息 |
+| `library.write` | 修改媒体库内容 |
+| `ui.dialog` | 显示弹窗和提示信息 |
+| `settings.read` | 读取应用设置 |
+| `settings.modify` | 修改应用设置 |
+| `storage` | 使用本地存储 |
 
 ### 文件命名
 
@@ -64,12 +102,12 @@ PR 合并到 `main` 后，GitHub Actions 会自动运行同步脚本：
 ```
 
 字段来源：
-- `id`、`name`、`version`、`minHostVersion`、`description`、`author`、`github` — 从插件的 `pluginManifest` 读取。
+- `id`、`name`、`version`、`minHostVersion`、`description`、`author`、`github`— 从插件的 `pluginManifest` 读取。
 - `file` — 由 CI 根据文件路径自动填入。
 
 ## 注意事项
 
-- 插件运行在 `flutter_js` 沙箱中，无法访问文件系统、网络或 Dart/Flutter API。
+- 插件运行在 `flutter_js` 沙箱中，通过权限白名单控制可访问的宿主 API。
 - 返回值格式不正确会导致错误（如 `pluginHandleUIAction` 的 `type` 必须为 `text`）。
 - 请确保屏蔽词和正则表达式经过测试，避免误杀正常弹幕。
 - PR 中请简要说明插件的用途和测试情况。
