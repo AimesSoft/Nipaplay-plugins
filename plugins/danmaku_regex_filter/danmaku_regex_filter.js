@@ -2,6 +2,7 @@ var pluginManifest = {
   id: 'danmaku_regex_filter',
   name: '弹幕正则过滤规则预设',
   version: '1.2.0',
+  minHostVersion: "1.10.3",
   description:
     '内置常用弹幕正则过滤规则，启用后自动屏蔽匹配的弹幕。' +
     '可在配置中逐条开关规则。' +
