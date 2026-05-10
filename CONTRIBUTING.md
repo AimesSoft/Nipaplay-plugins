@@ -22,7 +22,7 @@
 ### 必须
 
 - 插件文件必须是 `.js` 格式。
-- 必须声明 `pluginManifest` 对象，且 `id`、`name`、`version` 为非空字符串。
+- 必须声明 `pluginManifest` 对象，且 `id`、`name`、`version`、`minHostVersion` 为非空字符串。
 - `id` 必须全局唯一，建议使用 `前缀.名称` 格式（如 `my.filter`）。
 
 ### 可选
@@ -55,6 +55,7 @@ PR 合并到 `main` 后，GitHub Actions 会自动运行同步脚本：
   "id": "my.filter",
   "name": "我的过滤器",
   "version": "1.0.0",
+  "minHostVersion": "1.10.4",
   "description": "简要描述插件功能",
   "author": "你的名字",
   "github": "https://github.com/yourname/yourrepo",
@@ -63,7 +64,7 @@ PR 合并到 `main` 后，GitHub Actions 会自动运行同步脚本：
 ```
 
 字段来源：
-- `id`、`name`、`version`、`description`、`author`、`github` — 从插件的 `pluginManifest` 读取。
+- `id`、`name`、`version`、`minHostVersion`、`description`、`author`、`github` — 从插件的 `pluginManifest` 读取。
 - `file` — 由 CI 根据文件路径自动填入。
 
 ## 注意事项

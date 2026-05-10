@@ -169,6 +169,7 @@ def build_entry(plugin_dir, js_file):
         "id": manifest.get("id", ""),
         "name": manifest.get("name", ""),
         "version": manifest.get("version", ""),
+        "minHostVersion": manifest.get("minHostVersion", ""),
         "description": manifest.get("description", ""),
         "author": manifest.get("author", ""),
         "github": manifest.get("github", ""),
@@ -193,7 +194,7 @@ def validate_manifest(plugin_dir, js_file, existing_ids):
         return errors
 
     # Required fields
-    for field in ("id", "name", "version"):
+    for field in ("id", "name", "version", "minHostVersion"):
         val = manifest.get(field, "")
         if not isinstance(val, str) or not val.strip():
             errors.append(f"[{label}] '{field}' must be a non-empty string")
