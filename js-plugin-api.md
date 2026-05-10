@@ -28,6 +28,7 @@ const pluginManifest = {
   id: 'builtin.cn_sensitive_danmaku_filter',
   name: '弹幕预设屏蔽词（中国大陆）',
   version: '1.1.0',
+  minHostVersion: '1.10.4',
   description: '内置常用敏感词与辱骂词，启用后自动屏蔽命中的弹幕。',
   author: 'NipaPlay Team',
   github: 'https://github.com/xxx/xxx' // 可选
@@ -39,11 +40,12 @@ const pluginManifest = {
 - `id`：必填，唯一标识，非空字符串。
 - `name`：必填，展示名，非空字符串。
 - `version`：必填，版本号，非空字符串。
+- `minHostVersion`：必填，插件要求的宿主（NipaPlay）最低版本，格式为 `主版本.次版本.修订号`（如 `1.10.4`）。若宿主版本低于此值，插件将被标记为不兼容。
 - `description`：选填，描述字符串。
 - `author`：选填，作者字符串。
 - `github`：选填，GitHub 链接字符串，可为空。
 
-若 `id/name/version` 任一为空，插件会被判定为无效。
+若 `id/name/version/minHostVersion` 任一为空，插件会被判定为无效。
 
 ### 3.2 `pluginBlockWords`（可选）
 
@@ -174,6 +176,7 @@ const pluginManifest = {
   id: 'custom.example',
   name: '示例插件',
   version: '1.0.0',
+  minHostVersion: '1.10.4',
   description: '一个最小可用插件',
   author: 'You'
 };
@@ -209,6 +212,7 @@ const pluginManifest = {
   id: 'custom.regex_filter',
   name: '正则过滤规则',
   version: '1.0.0',
+  minHostVersion: '1.10.4',
   description: '可逐条开关的弹幕正则过滤规则',
   author: 'You'
 };
