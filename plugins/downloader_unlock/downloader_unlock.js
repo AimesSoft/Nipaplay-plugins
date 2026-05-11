@@ -1,7 +1,7 @@
 const pluginManifest = {
   id: 'downloader_unlock',
   name: '下载器解锁',
-  version: '1.0.0',
+  version: '1.1.0',
   minHostVersion: '1.10.5',
   description: '强制解锁下载器功能。',
   author: 'Retr0',
