@@ -2,10 +2,10 @@
 
 ```json
 {
-  id: '',
-  name: '',
-  description: '',
-  author: '',
+  "id": "",
+  "name": "",
+  "description": "",
+  "author": "",
 }
 ```
 
