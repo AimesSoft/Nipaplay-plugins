@@ -4,7 +4,7 @@ const pluginManifest = {
   id: 'danmaku_limiter',
   name: '弹幕数量控制器',
   version: '1.0.2',
-  minHostVersion: '1.10.0',
+  minHostVersion: '1.10.5',
   description: '自定义每秒弹幕上限，超出后自动去重稀释',
   author: 'Heylyx841',
   permissions: ['danmaku.modify', 'ui.dialog']
