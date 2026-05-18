@@ -1,7 +1,7 @@
 const pluginManifest = {
   id: 'better_danmaku_filter',
   name: '智能弹幕精选',
-  version: '1.0.0',
+  version: '1.1.0',
   minHostVersion: '1.10.5',
   description: '智能精选弹幕，过滤低质量弹幕，保留优质内容',
   author: 'Retr0',
@@ -206,8 +206,6 @@ function scoreItem(item, p) {
     reasons.push('全英数');
   }
   
-  if (item.type === 'top' || item.type === 'bottom') score += 10;
-  
   return { score: Math.max(0, Math.min(100, score)), reasons };
 }
 
@@ -248,7 +246,8 @@ function filterDanmaku(items, p) {
         if (recentContents[j].text === item._text) exactCount++;
       }
       
-      if (exactCount >= 2) {
+      var spamLimit = (item.type === 'scroll') ? 3 : 2;
+      if (exactCount >= spamLimit) {
         item._dropReasons.push('刷屏');
         item._prefiltered = true;
       }
@@ -264,7 +263,8 @@ function filterDanmaku(items, p) {
         if (result[j].time - result[i].time > p.windowSec) break;
         if (result[j]._prefiltered) continue;
         var sim = similarity(result[i]._text, result[j]._text);
-        if (sim > 0.82) {
+        var dupThreshold = (result[j].type === 'scroll') ? 0.93 : 0.82;
+        if (sim > dupThreshold) {
           result[j]._dropReasons.push('近似重复');
           result[j]._prefiltered = true;
         }
