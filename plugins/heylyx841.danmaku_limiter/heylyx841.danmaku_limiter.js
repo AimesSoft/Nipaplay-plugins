@@ -3,11 +3,12 @@
 const pluginManifest = {
   id: 'heylyx841.danmaku_limiter',
   name: '弹幕数量控制器',
-  version: '1.0.3',
-  minHostVersion: '1.10.5',
+  version: '1.0.4',
+  minHostVersion: '1.10.6',
   description: '自定义每秒弹幕上限，超出后自动去重稀释',
   author: 'Heylyx841',
-  permissions: ['danmaku.modify', 'ui.dialog']
+  permissions: ['danmaku.modify', 'ui.dialog'],
+  priority: 50
 };
 
 var enabled = true;
