@@ -153,7 +153,7 @@ function pluginOnEvent(e) {
   // 两个子功能都没开，不用处理
   if (!limitEnabled && !mergeEnabled) return;
 
-  // 合并需要时间有序，限流无需排序
+  // 合并需时间有序；限流阶段内自行排序
   var src = mergeEnabled
     ? list.slice().sort(function(a, b) { return (a.time || 0) - (b.time || 0); })
     : list;
@@ -210,66 +210,50 @@ function pluginOnEvent(e) {
   // 限流
   var working;
   if (limitEnabled) {
-    var buckets = [];
-    var minSec = Infinity;
-    var maxSec = -Infinity;
-
-    for (var i = 0; i < merged.length; i++) {
-      var d = merged[i];
-      if (!d || typeof d.time !== 'number' || isNaN(d.time)) continue;
-      var sec = Math.floor(d.time);
-      if (sec < minSec) minSec = sec;
-      if (sec > maxSec) maxSec = sec;
-      if (!buckets[sec]) buckets[sec] = [];
-      // 合并已消除相似内容 → 无需携带 norm；未合并 → 携带预计算 norm 用于去重
-      buckets[sec].push(mergeEnabled ? d : { d: d, norm: norms[i] });
+    // 滑动窗口限流：消除硬分桶的秒边界效应
+    var out = [];
+    var workList;
+    if (mergeEnabled) {
+      // 已按时间排序，过滤非法时间即可
+      workList = [];
+      for (var i = 0; i < merged.length; i++) {
+        var d = merged[i];
+        if (d && typeof d.time === 'number' && !isNaN(d.time)) workList.push(d);
+      }
+    } else {
+      // 未合并：携带 norm 后排序
+      workList = [];
+      for (var i = 0; i < merged.length; i++) {
+        var d = merged[i];
+        if (!d || typeof d.time !== 'number' || isNaN(d.time)) continue;
+        workList.push({ d: d, norm: norms[i], time: d.time });
+      }
+      workList.sort(function(a, b) { return a.time - b.time; });
     }
 
     // 全部弹幕都没有合法时间，直接退出
-    if (minSec === Infinity) return;
+    if (workList.length === 0) return;
 
-    var out = [];
-
-    // 按秒顺序遍历，天然保证输出按时间有序，省去最终 sort
-    for (var sec = minSec; sec <= maxSec; sec++) {
-      var arr = buckets[sec];
-      if (!arr) continue;
-
-      if (arr.length <= maxPerSec) {
-        for (var j = 0; j < arr.length; j++) {
-          out.push(mergeEnabled ? arr[j] : arr[j].d);
-        }
-        continue;
+    for (var i = 0; i < workList.length; i++) {
+      var t = workList[i].time;
+      // 统计已接纳列表中1秒窗口内的数量
+      var count = 0;
+      for (var j = out.length - 1; j >= 0; j--) {
+        if (t - out[j].time < 1.0) count++;
+        else break;
       }
-
-      if (mergeEnabled) {
-        // 合并已消除相似内容，无需再做桶内去重，直接等距采样
-        var step = arr.length / maxPerSec;
-        for (var m = 0; m < maxPerSec; m++) {
-          out.push(arr[Math.floor(m * step)]);
-        }
-      } else {
-        // 用预携带的 norm 去重
-        var seen = {};
-        var deduped = [];
-        for (var k = 0; k < arr.length; k++) {
-          var entry = arr[k];
-          if (!seen[entry.norm]) {
-            seen[entry.norm] = true;
-            deduped.push(entry.d);
-          }
-        }
-        if (deduped.length > maxPerSec) {
-          var step = deduped.length / maxPerSec;
-          for (var m = 0; m < maxPerSec; m++) {
-            out.push(deduped[Math.floor(m * step)]);
-          }
-        } else {
-          for (var j = 0; j < deduped.length; j++) out.push(deduped[j]);
+      // 未合并模式：同时检查窗口内相似内容去重
+      if (!mergeEnabled) {
+        var norm_i = workList[i].norm;
+        for (var j = out.length - 1; j >= 0; j--) {
+          if (t - out[j].time >= 1.0) break;
+          if (out[j].norm === norm_i) { count = maxPerSec; break; }
         }
       }
+      if (count < maxPerSec) out.push(workList[i]);
     }
-    working = out;
+    // 未合并模式下 out 存的是 { d, norm, time } 包装，需提取弹幕
+    working = mergeEnabled ? out : out.map(function(e) { return e.d; });
   } else {
     working = merged;
   }

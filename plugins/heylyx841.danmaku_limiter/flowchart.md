@@ -19,19 +19,15 @@ flowchart TD
 
     Phase2{阶段二<br/>限流开启?}
     Phase2 -->|否| Output[working = merged]
-    Phase2 -->|是| Bucket[分桶入桶<br/>合并开启→直入弹幕对象<br/>合并关闭→携带 norm 入桶]
+    Phase2 -->|是| BuildWorkList[构建排序工作列表<br/>合并关闭→携带 norm]
 
-    Bucket --> PerBucket[逐桶处理]
-    PerBucket --> WithinLimit{桶内数<br/>≤ maxPerSec?}
-    WithinLimit -->|是| KeepAll[全量保留]
-    WithinLimit -->|否| MergeOn{合并已开启?}
+    BuildWorkList --> SlideWindow[滑动窗口逐条扫描]
+    SlideWindow --> UnderLimit{1秒窗口内<br/>已接纳数 < maxPerSec<br/>且无相同 norm?}
+    UnderLimit -->|是| Accept[接纳]
+    UnderLimit -->|否| Skip[跳过]
 
-    MergeOn -->|是| DirectSample[跳过去重<br/>直接等距采样]
-    MergeOn -->|否| Dedup[用预携带 norm 去重<br/>去重后仍超限→等距采样]
-
-    KeepAll --> Collect
-    DirectSample --> Collect
-    Dedup --> Collect
+    Accept --> Collect
+    Skip --> Collect
     Output --> ChangedCheck
     Collect --> ChangedCheck
 
