@@ -7,7 +7,7 @@ const pluginManifest = {
   minHostVersion: '1.10.7',
   description: '弹幕密度限制 + 相似弹幕合并（替代原生合并渲染）',
   author: 'Heylyx841',
-  permissions: ['danmaku.modify', 'ui.dialog'],
+  permissions: ['danmaku.modify'],
   priority: 80
 };
 
@@ -304,7 +304,7 @@ function pluginOnEvent(e) {
   if (working.length !== list.length) {
     // 保证传入参数格式符合 { count, comments } 规范要求
     danmaku.replace({ count: working.length, comments: working });
-    ui.showSnackBar('弹幕: ' + list.length + ' → ' + working.length);
+    dev.log('收到' + list.length + '条→输出' + working.length + '条');
   } else {
     dev.log('无实际弹幕限制');
   }
