@@ -2,17 +2,16 @@
 
 - **ID**: `heylyx841.danmaku_limiter`
 - **作者**: Heylyx841
-- **版本**: 1.1.1
-- **最低 NipaPlay 版本**: 1.10.7
+- **版本**: 1.1.2
+- **最低 NipaPlay 版本**: 1.10.8
 
 ## 功能介绍
 
 本插件监听 `danmakuLoaded` 事件，在弹幕正式渲染前进行高效拦截与实时优化：
 
-- **密度限制**（独立开关，默认开启）：采用滑动窗口算法，精确控制每秒弹幕密度（默认 5 条/秒），消除硬分桶的秒边界效应；超限时保留窗口内最早到达的弹幕，防止满屏弹幕遮挡画面。关闭后不执行限流和去重。
-- **模糊去重**：对1秒滑动窗口内的弹幕进行内容归一化处理（全角半角转换、忽略大小写、特殊符号、重复冗余字符、常见变体归一化），优先保留独特内容。
-- **相似合并**（独立开关）：在时间窗口内模糊匹配相似弹幕，合并为单条并标注合并数，替代原生合并渲染。合并时选择频次最高的文本作为代表，避免偏门弹幕代表主流内容。
-- **跨类型合并**（独立开关，默认关闭）：控制是否将不同类型（滚动/顶部/底部）的弹幕合并在一起，开启后跨类型弹幕也可合并。
+- **密度限制**（独立开关，默认开启）：按1秒时间分桶，两阶段限流——先对同桶内相似弹幕模糊去重（调用原生相似度引擎，与合并阶段一致；若合并已开启则跳过去重），去重后仍超 `maxPerSec`（默认5条/秒）时均匀采样（等间距取），避免只保留最前面的弹幕。关闭后不执行限流和去重。
+- **相似合并**（独立开关）：使用 NipaPlay 原生相似度引擎（C++ 实现，四级检测：完全相同 → 编辑距离 → 拼音距离 → 余弦相似度），在时间窗口内匹配相似弹幕，合并为单条并标注合并数，替代原生合并渲染。
+- **跨类型合并**（独立开关，默认开启）：控制是否将不同类型（滚动/顶部/底部）的弹幕合并在一起，关闭后仅合并同类型弹幕。
 - **小字兼容**：部分设备无法显示 Unicode 下标 ₍ɴ₎，开启后改用 (N) 标注合并数。
 - **配置持久化**：提供设置页交互，支持独立开关及自定义每秒上限、合并窗口、相似度阈值，配置自动保存且跨会话持久化。
 
@@ -25,36 +24,76 @@ flowchart TD
     Check1 -->|无效/空| End1([结束])
     Check1 -->|有效| Check2{合并或限流<br/>至少一项开启?}
     Check2 -->|否| End1
-    Check2 -->|是| Prep[条件排序<br/>+ 单次归一化 norms]
+    Check2 -->|是| Prep{合并开启?}
 
-    Prep --> Phase1{阶段一<br/>合并开启?}
-    Phase1 -->|是| Merge[时间窗口内相似度匹配<br/>完全相同快速路径<br/>+ 跨类型检查<br/>+ 频次最高代表选择<br/>type/color 兜底]
-    Phase1 -->|否| SkipMerge[merged = src 原始列表]
-    Merge --> Phase2
-    SkipMerge --> Phase2
+    Prep -->|是| SortByTime[按时间排序]
+    Prep -->|否| UseSrc[src = 原始列表]
+    SortByTime --> NativeMerge
+    UseSrc --> Phase2
 
-    Phase2{阶段二<br/>限流开启?}
+    NativeMerge[原生相似度合并 nativeMerge]
+    NativeMerge --> AvailCheck{引擎可用?<br/>similarityAvailable}
+    AvailCheck -->|否| Fallback[回退: 返回原始列表]
+    AvailCheck -->|是| BuildItems[构建 items 数组<br/>text / mode / time_seconds<br/>+ itemToOrig 索引映射]
+
+    BuildItems --> CallEngine[调用 danmaku.checkSimilarity<br/>items + config<br/>max_dist / max_cosine /<br/>use_pinyin / cross_mode / time_window]
+    CallEngine --> HasGroups{返回的 groups<br/>非空?}
+    HasGroups -->|否| NoMergeResult[merged = src]
+    HasGroups -->|是| ProcessGroups[遍历 groups<br/>标记 consumed / repOrigIdx<br/>代表弹幕添加 toGroupLabel 标注<br/>type / color 兜底]
+
+    ProcessGroups --> AddRemaining[添加未合并且非代表的弹幕]
+    AddRemaining --> SortMerged[按时间排序]
+    SortMerged --> Phase2
+    NoMergeResult --> Phase2
+    Fallback --> Phase2
+
+    Phase2{阶段二: 限流开启?}
     Phase2 -->|否| Output[working = merged]
-    Phase2 -->|是| BuildWorkList[构建排序工作列表<br/>合并关闭→携带 norm]
+    Phase2 -->|是| SplitTimed["分离 timed / untimed (untimed 不受限流)"]
 
-    BuildWorkList --> SlideWindow[前向指针滑动窗口扫描]
-    SlideWindow --> UnderLimit{1秒窗口内<br/>已接纳数 < maxPerSec<br/>且无相同 norm?}
-    UnderLimit -->|是| Accept[接纳]
-    UnderLimit -->|否| Skip[跳过]
+    SplitTimed --> SortTimed["timed 按时间排序"]
+    SortTimed --> Bucket["按 floor(time) 分桶 (1秒)"]
+    Bucket --> ForEachBucket["遍历每个桶"]
+    ForEachBucket --> MergeCheck{"合并已开启?"}
+    MergeCheck -->|是| SkipDedup["跳过去重<br/>(合并阶段已完成)"]
+    MergeCheck -->|否| NeedDedup{"桶内数量 > maxPerSec?"}
+    NeedDedup -->|否| SkipDedup
+    NeedDedup -->|是| EngineCheck{"引擎可用?<br/>similarityAvailable"}
+    EngineCheck -->|否| SkipDedup2["跳过去重<br/>(返回原桶)"]
+    EngineCheck -->|是| Dedup["阶段1: 模糊去重<br/>(原生相似度引擎<br/>达limit后提前终止)"]
+    SkipDedup --> OverLimit
+    SkipDedup2 --> OverLimit
+    Dedup --> OverLimit{"去重后数量 <= maxPerSec?"}
+    OverLimit -->|是| AcceptAll[全部接纳]
+    OverLimit -->|否| UniformPop["阶段2: 均匀采样 (等间距取 maxPerSec 条)"]
 
-    Accept --> Collect
-    Skip --> Collect
+    AcceptAll --> Collect
+    UniformPop --> Collect
+    Collect --> MergeBack[合并 untimed 弹幕]
+    MergeBack --> ChangedCheck
     Output --> ChangedCheck
-    Collect --> ChangedCheck
 
     ChangedCheck{弹幕结果<br/>数量发生变化?}
-    ChangedCheck -->|是| Replace[替换弹幕列表<br/>提示处理结果]
+    ChangedCheck -->|是| Replace[danmaku.replace<br/>提示处理结果]
     ChangedCheck -->|否| NoChange[日志记录无实际限制]
     Replace --> End1
     NoChange --> End1
 ```
 
 ## 更新日志
+
+### 1.1.2 更新
+
+- **默认值修改**：`max_dist` 由 3 调整为 5、`mergeThreshold` 由 0.75 调整为 0.45、`crossMode` 默认由关闭改为开启；相似度阈值输入范围由 0.5~1.0 放宽为 0.0~1.0，允许更宽松的合并策略。
+- **限流算法回退**：由滑动窗口回退为1秒分桶 + 两阶段限流（先模糊去重再均匀采样）；去重改用原生相似度引擎，与合并阶段一致；合并开启时跳过去重避免重复计算，修复只开启限流时滚动弹幕完全不加载的 bug。
+- **修复开关重启丢失**：switch handler 改为从 Dart 持久化层读取新值，避免 JS 与 Dart 值脱同步导致翻转方向错误；移除 `saveSwitchConfig()` 消除双写覆盖。
+- **引擎可用性检查**：合并前先调用 `danmaku.similarityAvailable()` 检查原生引擎状态，不可用时跳过合并而非静默失败。
+- **原生相似度引擎**：合并弹幕改用 NipaPlay 内置的 `danmaku.checkSimilarity()` 原生 API（C++ 实现，四级检测：完全相同 → 编辑距离 → 拼音距离 → 余弦相似度），替代 JS 端 bigram 相似度计算，精度与性能大幅提升。
+- **移除 JS 端相似度代码**：删除 `normalize()`、`similarity()`、`WIDTH_TABLE`（全角半角映射）、`PATTERN_ALIAS`（变体归一化规则）等约 70 行 JS 实现，由原生引擎统一处理。
+- **移除 `modeToType()` 死代码**：该函数从未被调用。
+- **合并逻辑优化**：`nativeMerge()` 使用 `itemToOrig` 数组做 O(1) 索引映射，替代 `indexOf` 的 O(n) 查找；使用 `repOrigIdx` 集合标记代表弹幕，替代遍历 groups 的 O(g) 检查。
+- **限流分支合并**：删除 norm 去重后两个限流分支逻辑相同，合并为单一分支。
+- **`minHostVersion` 提升至 `1.10.8`**（要求宿主提供 `danmaku.checkSimilarity()` API）。
 
 ### 1.1.1 更新
 
