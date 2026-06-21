@@ -1,7 +1,7 @@
 const pluginManifest = {
   id: 'better_danmaku_filter',
   name: '智能弹幕精选',
-  version: '1.1.2',
+  version: '1.2.1',
   minHostVersion: '1.10.6',
   description: '智能精选弹幕，过滤低质量弹幕，保留优质内容',
   author: 'Retr0',
@@ -210,6 +210,13 @@ function maxCharRatio(s) {
     if (freq[key] > max) max = freq[key];
   }
   return max / s.length;
+}
+
+function getTargetKeepCount(totalCount, p) {
+  if (p.expectedDanmakuCount > 0) {
+    return Math.max(1, Math.round(p.expectedDanmakuCount * 1000));
+  }
+  return Math.max(1, Math.round(totalCount * p.ratio / 100));
 }
 
 function similarity(a, b) {
@@ -423,13 +430,7 @@ function filterDanmaku(items, p) {
   var candidates = result.filter(function(r) { return !r._prefiltered; });
   candidates.sort(function(a, b) { return b._score - a._score; });
   
-  var keepCount;
-  
-  if (p.expectedDanmakuCount > 0) {
-    keepCount = Math.max(1, Math.round(p.expectedDanmakuCount * 1000));
-  } else {
-    keepCount = Math.max(1, Math.round(candidates.length * p.ratio / 100));
-  }
+  var keepCount = getTargetKeepCount(candidates.length, p);
 
   var kept = candidates.slice(0, Math.min(keepCount, candidates.length));
   
@@ -495,6 +496,12 @@ function pluginOnEvent(event) {
     }
 
     loadParams();
+
+    var targetKeepCount = getTargetKeepCount(commentsArray.length, params);
+    if (targetKeepCount >= commentsArray.length) {
+      ui.showSnackBar('弹幕精选跳过: ' + originalCount + ' 条不超过目标保留数 ' + targetKeepCount);
+      return;
+    }
 
     var filtered = filterDanmaku(commentsArray, params);
     var filteredCount = filtered.length;
