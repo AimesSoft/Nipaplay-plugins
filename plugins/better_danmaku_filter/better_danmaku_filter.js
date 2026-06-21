@@ -1,7 +1,7 @@
 const pluginManifest = {
   id: 'better_danmaku_filter',
   name: '智能弹幕精选',
-  version: '1.2.0',
+  version: '1.1.2',
   minHostVersion: '1.10.6',
   description: '智能精选弹幕，过滤低质量弹幕，保留优质内容',
   author: 'Retr0',
