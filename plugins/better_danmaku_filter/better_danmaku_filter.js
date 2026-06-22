@@ -469,6 +469,11 @@ function filterDanmaku(items, p) {
   return finalKept;
 }
 
+function pluginOnInitialize()
+{
+  loadParams();
+}
+
 function pluginOnDestroy() {
   ui.showSnackBar('弹幕精选插件已禁用');
 }
