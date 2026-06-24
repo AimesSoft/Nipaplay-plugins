@@ -1,7 +1,7 @@
 const pluginManifest = {
   id: 'better_danmaku_filter',
   name: '智能弹幕精选',
-  version: '1.1.3',
+  version: '1.1.4',
   minHostVersion: '1.10.6',
   description: '智能精选弹幕，过滤低质量弹幕，保留优质内容',
   author: 'Retr0',
@@ -24,19 +24,37 @@ var params = {
   filterAdvanced: true
 };
 
+function readIntSetting(id, defaultValue) {
+  var raw = settings.getText(id);
+  var value = parseInt(raw);
+  return isNaN(value) ? defaultValue : value;
+}
+
+function readBoolSetting(id, defaultValue) {
+  if (settings.getSwitch) {
+    var switchValue = settings.getSwitch(id);
+    if (switchValue === true || switchValue === false) return switchValue;
+  }
+
+  var raw = settings.getText(id);
+  if (raw === 'true') return true;
+  if (raw === 'false') return false;
+  return defaultValue;
+}
+
 function loadParams() {
-  params.ratio = parseInt(settings.getText('ratio')) || 30;
-  params.expectedDanmakuCount = parseInt(settings.getText('expectedDanmakuCount')) || 0;
-  params.windowSec = parseInt(settings.getText('windowSec')) || 5;
-  params.minLen = parseInt(settings.getText('minLen')) || 3;
-  params.repeatThreshold = parseInt(settings.getText('repeatThreshold')) || 60;
-  params.penalty = parseInt(settings.getText('penalty')) || 30;
-  params.filterDuplicate = settings.getText('filterDuplicate') === 'true';
-  params.filterSpam = settings.getText('filterSpam') === 'true';
-  params.filterShort = settings.getText('filterShort') === 'true';
-  params.filterNoise = settings.getText('filterNoise') === 'true';
-  params.allowEmoji = settings.getText('allowEmoji') === 'true';
-  params.filterAdvanced = settings.getText('filterAdvanced') === 'true';
+  params.ratio = readIntSetting('ratio', 30);
+  params.expectedDanmakuCount = readIntSetting('expectedDanmakuCount', 0);
+  params.windowSec = readIntSetting('windowSec', 5);
+  params.minLen = readIntSetting('minLen', 3);
+  params.repeatThreshold = readIntSetting('repeatThreshold', 60);
+  params.penalty = readIntSetting('penalty', 30);
+  params.filterDuplicate = readBoolSetting('filterDuplicate', true);
+  params.filterSpam = readBoolSetting('filterSpam', true);
+  params.filterShort = readBoolSetting('filterShort', true);
+  params.filterNoise = readBoolSetting('filterNoise', true);
+  params.allowEmoji = readBoolSetting('allowEmoji', true);
+  params.filterAdvanced = readBoolSetting('filterAdvanced', true);
 }
 
 function buildUIEntries() {
@@ -471,7 +489,8 @@ function filterDanmaku(items, p) {
 
 function pluginOnInitialize()
 {
-  loadParams();
+  // 宿主启动时设置值可能尚未加载，此处不读取/写入配置。
+  // 真正处理弹幕时再调用 loadParams()，避免用默认值覆盖用户配置。
 }
 
 function pluginOnDestroy() {
@@ -499,7 +518,7 @@ function pluginOnEvent(event) {
 
     var targetKeepCount = getTargetKeepCount(commentsArray.length, params);
     if (targetKeepCount >= commentsArray.length) {
-      ui.showSnackBar('弹幕精选跳过: ' + originalCount + ' 条不超过期望数数 ');
+      ui.showSnackBar('弹幕精选跳过: ' + originalCount + ' 条不超过目标保留数 ' + targetKeepCount);
       return;
     }
 
@@ -520,6 +539,9 @@ function pluginHandleUIAction(actionId) {
   
   if (switchActions.includes(actionId)) {
     params[actionId] = !params[actionId];
+    if (settings.setSwitch) {
+      settings.setSwitch(actionId, params[actionId]);
+    }
     settings.setText(actionId, params[actionId].toString());
     pluginUIEntries = buildUIEntries();
     
