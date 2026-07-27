@@ -4,7 +4,7 @@
 // 无需额外启动 API 服务，远程控制 API 默认端口 1180。
 
 var pluginManifest = {
-  id: 'builtin.steam_status_sync',
+  id: 'steam_status_sync',
   name: 'Steam 状态同步',
   version: '2.0.0',
   minHostVersion: '1.11.3',
