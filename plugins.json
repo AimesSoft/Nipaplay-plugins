@@ -50,6 +50,16 @@
       "author": "Retr0",
       "github": "",
       "file": "plugins/steam_status_sync/steam_status_sync.js"
+    },
+    {
+      "id": "titan_danmaku_renderer",
+      "name": "JavaScript弹幕引擎",
+      "version": "1.0.2",
+      "minHostVersion": "1.11.4",
+      "description": "注意：仅支持 iOS、Android 端；使用实验性 JavaScript 弹幕引擎渲染 NipaPlay 弹幕",
+      "author": "Retr0",
+      "github": "",
+      "file": "plugins/titan_danmaku_renderer/titan_danmaku_renderer.js"
     }
   ]
 }
