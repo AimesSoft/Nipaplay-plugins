@@ -5,6 +5,8 @@ on:
     branches: [main]
     paths:
       - 'plugins/**/*.js'
+      - 'scripts/sync_plugins_index.py'
+      - '.github/workflows/validate-plugin.yml'
 
 jobs:
   validate:
@@ -23,13 +25,5 @@ jobs:
       - name: Restore main plugins.json for ID uniqueness check
         run: git show origin/main:plugins.json > plugins.json 2>/dev/null || true
 
-      - name: Get changed JS files
-        id: changed
-        uses: tj-actions/changed-files@v45
-        with:
-          files: 'plugins/**/*.js'
-
-      - name: Validate plugin manifests
-        if: steps.changed.outputs.any_changed == 'true'
-        run: |
-          python scripts/sync_plugins_index.py --validate ${{ steps.changed.outputs.all_changed_files }}
+      - name: Validate all plugin manifests
+        run: python scripts/sync_plugins_index.py --validate --scan
