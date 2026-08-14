@@ -14,6 +14,7 @@
 
 - 非 Web 平台通过 `flutter_js` 执行插件。
 - Web 平台当前不支持 JS 插件运行时（会抛出 `UnsupportedError`）。
+- 插件弹幕渲染器使用独立透明 WebView；当前只支持 Android 和 iOS。
 
 ## 3. 插件入口变量与函数
 
@@ -47,6 +48,7 @@ const pluginManifest = {
 - `author`：选填，作者字符串。
 - `github`：选填，GitHub 链接字符串，可为空。
 - `permissions`：选填，权限字符串数组。
+- `requires`：选填，HTTPS 外部脚本依赖数组，详见下文。
 - `priority`：选填，整数，默认 `50`。用于控制插件在 `danmakuLoaded` 事件链式处理中的执行顺序。数值越小越先执行。建议范围 `0-100`，`0` 为最先执行，`100` 为最后执行。
 
 若 `id/name/version/minHostVersion` 任一为空，插件会被判定为无效。
@@ -57,6 +59,8 @@ const pluginManifest = {
 |---------|------|
 | `player.control` | 控制播放器（播放/暂停/跳转） |
 | `danmaku.modify` | 修改弹幕显示和过滤规则 |
+| `danmaku.renderer` | 声明在视频上方运行的 WebView 弹幕渲染器 |
+| `script.external` | 下载并执行 `pluginManifest.requires` 中声明的 HTTPS 脚本 |
 | `library.read` | 读取媒体库信息 |
 | `library.write` | 修改媒体库内容 |
 | `ui.dialog` | 显示弹窗和提示信息 |
@@ -64,6 +68,42 @@ const pluginManifest = {
 | `settings.modify` | 修改应用设置 |
 | `storage` | 使用本地存储 |
 | `system.override` | 覆盖系统级设置（如解锁下载器） |
+
+#### 外部脚本依赖 `requires`
+
+外部依赖必须直接写在 `pluginManifest` 中，不使用油猴式注释：
+
+```js
+const pluginManifest = {
+  id: 'com.example.renderer',
+  name: '示例弹幕引擎',
+  version: '1.0.0',
+  minHostVersion: '1.11.4',
+  permissions: ['danmaku.renderer', 'script.external'],
+  requires: [
+    {
+      id: 'engine',
+      url: 'https://cdn.example.com/engine.js',
+      sha256: '0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef'
+    }
+  ]
+};
+```
+
+每个依赖对象支持：
+
+- `id`：依赖 ID，可由渲染器的 `requires` 引用。省略时依次使用 `require0`、`require1`；市场插件建议显式填写。
+- `url`：必填，必须是带主机名的绝对 HTTPS URL。
+- `sha256`：选填，外部文件的 SHA-256（64 位十六进制）。市场发布时强烈建议填写并把 URL 固定到不可变版本。
+
+约束与加载行为：
+
+- 使用外部依赖必须申请 `script.external` 权限。
+- 依赖 ID 和 URL 在同一清单内不得重复。
+- 宿主按清单顺序下载和加载脚本；单个文件最大 32 MB，下载超时为 30 秒。
+- 配置摘要后，缓存命中和新下载都会先校验 SHA-256；校验失败不会执行脚本。
+- 下载文件缓存在应用数据目录的 `plugins/.renderer-host/scripts/` 中。
+- 外部脚本不会进入普通 `flutter_js` 插件运行时，只会在选中相应弹幕渲染器后进入隔离 WebView 页面。
 
 权限声明示例：
 
@@ -154,7 +194,84 @@ const pluginUIEntries = [
 
 无效 entry 会被跳过，不会导致整个插件失败。
 
-### 3.4 `pluginHandleUIAction(actionId)`（可选）
+### 3.4 `pluginDanmakuRenderers`（可选）
+
+声明一个或多个基于 DOM/WebView 的弹幕渲染器。插件必须同时申请 `danmaku.renderer` 与 `script.external` 权限，否则宿主不会注册这些渲染器。
+
+```js
+const pluginDanmakuRenderers = [
+  {
+    id: 'example',
+    name: 'Example Engine',
+    description: '示例 DOM 弹幕引擎',
+    apiVersion: 1,
+    platforms: ['android', 'ios'],
+    requires: ['engine'],
+    bootstrap: String.raw`
+      const root = document.getElementById('nipa-danmaku-root');
+      const engine = createEngine(root);
+
+      window.NipaDanmakuRenderer = {
+        handle(message) {
+          switch (message.type) {
+            case 'load':
+              engine.load(message.items || []);
+              break;
+            case 'settings':
+              engine.setOptions(message.value || {});
+              break;
+            case 'clock':
+              engine.sync(message);
+              break;
+            case 'dispose':
+              engine.dispose();
+              break;
+          }
+        }
+      };
+    `
+  }
+];
+```
+
+字段说明：
+
+- `id`：必填，插件内唯一，仅允许字母、数字、`.`、`_`、`-`。
+- `name`：必填，设置页显示名称。
+- `description`：选填，渲染器说明。
+- `apiVersion`：选填，默认 `1`；当前宿主只支持 `1`。
+- `platforms`：必填，当前只接受 `android`、`ios`，至少填写一个。Windows 尚无 WebView 渲染宿主，声明 `windows` 也不会生效。
+- `requires`：选填，引用 `pluginManifest.requires` 的依赖 ID。省略时加载清单中的全部依赖；填写后仍按清单顺序加载选中的依赖。
+- `bootstrap`：必填，外部脚本加载完成后执行的适配代码。必须安装 `window.NipaDanmakuRenderer.handle(message)`。
+
+宿主页包含透明、不可点击的 `#nipa-danmaku-root`。页面完成 `bootstrap` 且确认 `handle` 存在后，会自动向 Flutter 宿主发送 `ready`，随后依次推送完整状态：
+
+| `message.type` | 主要字段 | 说明 |
+|---|---|---|
+| `initialize` | `apiVersion`、`pluginId`、`rendererId` | 初始化协议与身份信息 |
+| `load` | `version`、`items` | 弹幕列表变化时推送；`version` 是宿主列表版本 |
+| `settings` | `value` | 弹幕显示设置变化时推送 |
+| `clock` | `positionSeconds`、`durationSeconds`、`playing`、`playbackRate`、`seekRevision` | 播放时钟，正常播放时最多每 100 ms 推送一次 |
+| `dispose` | 无 | 释放引擎、DOM、Observer 和监听器 |
+
+`load.items` 的标准字段包括：
+
+- `time`（秒）、`content`、`type`（`scroll`/`top`/`bottom`/`reverse`）、`originalType`；
+- `color`（CSS `rgb(...)`）、`isMe`；
+- 可选的 `senderId`、`danmakuId`、`timestamp`、`source`、`fontSize`、`pool`、`weight`，以及数据源扩展字段。
+
+`settings.value` 当前包含 `visible`、`opacity`、`fontSize`、`fontFamily`、`displayArea`、`scrollDurationSeconds`、`stacking`、`merge`、`blockTop`、`blockBottom`、`blockScroll`、`blockWords`、`timeOffsetSeconds`。
+
+适配层需要自行把这些通用消息映射到第三方引擎。可通过以下通道向宿主写日志或报告运行错误：
+
+```js
+NipaDanmakuHost.postMessage(JSON.stringify({ type: 'log', message: 'loaded' }));
+NipaDanmakuHost.postMessage(JSON.stringify({ type: 'error', message: 'details' }));
+```
+
+WebView 层由 Flutter 使用 `IgnorePointer` 包裹，但适配代码仍应让根节点和弹幕节点保持透明并设置 `pointer-events: none`。完整实现可参考 `plugins/titan_danmaku_renderer/`。
+
+### 3.5 `pluginHandleUIAction(actionId)`（可选）
 
 当用户点击插件配置项后，宿主会调用此函数。
 
@@ -188,7 +305,7 @@ function pluginHandleUIAction(actionId) {
 
 重要行为：`pluginHandleUIAction` 执行完毕后，宿主会自动重新读取 JS 运行时中的 `pluginBlockWords` 和 `pluginUIEntries` 变量。这意味着插件可以在回调中动态修改这两个变量（例如切换规则启用状态），宿主会即时同步更新弹幕过滤词库和 UI 入口列表。
 
-### 3.5 `pluginOnEvent(event)`（可选）
+### 3.6 `pluginOnEvent(event)`（可选）
 
 监听应用事件。
 
@@ -234,7 +351,7 @@ function pluginOnEvent(event) {
 - 每个插件拿到的 `event.data.danmaku` 是前序插件处理后的结果，**而非原始弹幕**
 - 不调用 `danmaku.replace()` 的插件不影响数据流，行为与之前完全一致
 
-### 3.6 生命周期函数（可选）
+### 3.7 生命周期函数（可选）
 
 插件可以声明以下生命周期钩子：
 
@@ -446,12 +563,13 @@ settings.setSwitch('enable_filter', true);
 1. `pluginManifest` - 插件元数据
 2. `pluginBlockWords` - 弹幕屏蔽词
 3. `pluginUIEntries` - UI 入口列表
-4. `pluginHandleUIAction(actionId)` - UI 动作处理
-5. `pluginOnEvent(event)` - 事件监听
-6. `pluginOnInitialize()` - 初始化钩子
-7. `pluginOnDestroy()` - 销毁钩子
-8. `pluginOnResume()` - 恢复钩子
-9. `pluginOnSuspend()` - 挂起钩子
+4. `pluginDanmakuRenderers` - WebView 弹幕渲染器声明
+5. `pluginHandleUIAction(actionId)` - UI 动作处理
+6. `pluginOnEvent(event)` - 事件监听
+7. `pluginOnInitialize()` - 初始化钩子
+8. `pluginOnDestroy()` - 销毁钩子
+9. `pluginOnResume()` - 恢复钩子
+10. `pluginOnSuspend()` - 挂起钩子
 
 ### 桥接 API 对象
 
@@ -475,7 +593,8 @@ settings.setSwitch('enable_filter', true);
 - 插件启用后会：
   - 加载运行时
   - 调用 `pluginOnInitialize()`
-  - 读取 `pluginBlockWords/pluginUIEntries`
+  - 读取 `pluginBlockWords/pluginUIEntries/pluginDanmakuRenderers`
+- 外部依赖仅在已启用插件的渲染器被选中时下载、校验和执行。
 - 禁用插件会：
   - 调用 `pluginOnDestroy()`
   - 卸载运行时
@@ -494,6 +613,8 @@ settings.setSwitch('enable_filter', true);
 - 运行 JS 时报错会导致该插件 `loaded=false`，并记录错误信息到插件状态。
 - 插件 UI 动作返回格式不符时会抛出格式错误（例如 `type` 不是 `text`）。
 - Web 平台插件运行时未实现。
+- 插件弹幕渲染器当前仅支持 Android/iOS，且 `apiVersion` 必须为 `1`。
+- 外部脚本下载、HTTP 状态、大小或 SHA-256 校验失败时，渲染层保持隐藏并记录错误。
 - 权限检查失败时 API 调用会返回 `false` 或 `null`。
 - `ui.showDialog` 当前版本暂不支持（需要 `BuildContext`）。
 - `storage.get()` 同步桥接限制返回 `null`，建议用 `settings.getText()`/`settings.getSwitch()` 替代简单配置读取。

@@ -29,6 +29,7 @@
 
 - `pluginBlockWords` — 字符串数组，用于弹幕过滤。
 - `pluginUIEntries` — 数组，用于在设置页生成功能入口。
+- `pluginDanmakuRenderers` — 数组，用于声明 Android/iOS WebView 弹幕渲染器。
 - `pluginHandleUIAction(actionId)` — 函数，处理用户点击事件。
 - `pluginOnEvent(event)` — 函数，监听应用事件。
 - `pluginOnInitialize()` — 函数，插件启用时调用。
@@ -62,12 +63,26 @@ const pluginManifest = {
 |---------|------|
 | `player.control` | 控制播放器（播放/暂停/跳转） |
 | `danmaku.modify` | 修改弹幕显示和过滤规则 |
+| `danmaku.renderer` | 声明 WebView 弹幕渲染器 |
+| `script.external` | 下载并执行清单中声明的 HTTPS 外部脚本 |
 | `library.read` | 读取媒体库信息 |
 | `library.write` | 修改媒体库内容 |
 | `ui.dialog` | 显示弹窗和提示信息 |
 | `settings.read` | 读取应用设置 |
 | `settings.modify` | 修改应用设置 |
 | `storage` | 使用本地存储 |
+| `system.override` | 覆盖系统级设置（如解锁下载器） |
+
+### 外部脚本与弹幕渲染器
+
+- 外部依赖必须声明在 `pluginManifest.requires` 中，每项使用绝对 HTTPS URL。
+- 发布到市场的外部依赖应固定版本，并填写 64 位 SHA-256；不要引用会变化的分支或 `latest` 文件。
+- `pluginDanmakuRenderers` 必须同时申请 `danmaku.renderer` 和 `script.external`。
+- 渲染器当前只支持 `apiVersion: 1` 和 `platforms: ['android', 'ios']` 的子集；请勿提前声明 Windows。
+- 渲染器引用的每个依赖 ID 必须存在于 `pluginManifest.requires`。
+- 外部代码的来源、许可和再分发条件由投稿者负责确认，并应在插件 README 中说明。
+
+完整字段和消息协议见 [JS 插件接口文档](js-plugin-api.md#34-plugindanmakurenderers可选)。
 
 ### 文件命名
 
@@ -83,6 +98,13 @@ PR 合并到 `main` 后，GitHub Actions 会自动运行同步脚本：
 - **删除插件** — 检测到插件目录被移除，从 `plugins.json` 中删除对应条目。
 
 你只需保证 `pluginManifest` 声明正确即可，索引维护由 CI 完成。
+
+PR 校验会全量扫描市场插件，并检查：
+
+- 基础清单字段、插件 ID、目录名和全局唯一性；
+- 权限 ID 是否为宿主已支持的权限；
+- 外部依赖 ID/URL 是否重复、URL 是否为 HTTPS、SHA-256 格式是否正确；
+- 弹幕渲染器权限、ID、API 版本、平台、依赖引用和 `bootstrap` 是否有效。
 
 ## plugins.json 索引格式（参考）
 
@@ -108,6 +130,7 @@ PR 合并到 `main` 后，GitHub Actions 会自动运行同步脚本：
 ## 注意事项
 
 - 插件运行在 `flutter_js` 沙箱中，通过权限白名单控制可访问的宿主 API。
+- `script.external` 依赖会进入独立 WebView，不等同于普通 `flutter_js` 沙箱；请把它视为高权限代码。
 - 返回值格式不正确会导致错误（如 `pluginHandleUIAction` 的 `type` 必须为 `text`）。
 - 请确保屏蔽词和正则表达式经过测试，避免误杀正常弹幕。
 - PR 中请简要说明插件的用途和测试情况。

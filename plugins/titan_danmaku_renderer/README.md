@@ -1,6 +1,6 @@
-# Titan 弹幕引擎插件
+# JavaScript 弹幕引擎插件
 
-该插件让 NipaPlay 可以使用 Titan DOM 弹幕引擎渲染弹幕。Titan 引擎本体不打包进插件脚本，而是在用户启用并选择该渲染器后，通过 `pluginManifest.requires` 下载、校验并缓存。
+该插件让 NipaPlay 可以使用 Titan DOM 弹幕引擎渲染弹幕。引擎本体不打包进插件脚本，而是在用户启用并选择该渲染器后，通过 `pluginManifest.requires` 下载、校验并缓存。
 
 ## 平台支持
 

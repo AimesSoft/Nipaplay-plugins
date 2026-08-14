@@ -5,6 +5,8 @@ on:
     branches: [main]
     paths:
       - 'plugins/**'
+      - 'scripts/sync_plugins_index.py'
+      - '.github/workflows/sync-plugins.yml'
 
 jobs:
   sync:
@@ -21,8 +23,11 @@ jobs:
         with:
           python-version: '3.x'
 
+      - name: Validate all plugin manifests
+        run: python scripts/sync_plugins_index.py --validate --scan
+
       - name: Sync plugins index
-        run: python scripts/sync_plugins_index.py
+        run: python scripts/sync_plugins_index.py --scan
 
       - name: Commit & push if changed
         run: |
