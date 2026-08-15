@@ -58,6 +58,19 @@ requires: ['titan-bundle'],
 shasum -a 256 dist/titan-bundle.js
 ```
 
+## Titan 专属设置
+
+当 NipaPlay 选择 Titan 渲染器时，软件会显示独立的 Titan 设置入口，并通过
+`settings.value.rendererSettings` 传入适配层。当前支持：
+
+- 不透明度、字号倍率、加粗、描边类型（重墨 / 描边 / 45° 投影）和字体族；
+- 滚动速度、密度、基准时长与同屏上限；
+- 防挡字幕、顶部/底部偏移、最大长度；
+- DOM 回收、模型回收与禁止缩小。
+
+这些设置单独持久化，只在 Titan 被选中时显示和生效，不会覆盖其他弹幕引擎的字号、字体、描边与速度配置。
+播放倍速同步固定开启，不提供关闭入口。
+
 ## 与播放器的通信
 
 插件适配层创建 `window.NipaDanmakuRenderer.handle(message)`，接收 NipaPlay 推送的消息：
@@ -66,11 +79,14 @@ shasum -a 256 dist/titan-bundle.js
 | --- | --- | --- |
 | `initialize` | API 版本、插件 ID、渲染器 ID | 预留协议消息，当前适配层无需额外处理 |
 | `load` | 标准化弹幕列表和列表版本 | 转换字段后执行 `clear/reset/addList/seek` |
-| `settings` | 可见性、透明度、字号、显示区域、字体、屏蔽和时间偏移 | 当前映射可见性、透明度、显示区域、字体和时间偏移；屏蔽已在 App 侧完成 |
+| `add` | 用户刚发送成功的单条标准化弹幕 | 不传 `stime`，调用 `engine.add()` 立即渲染，不清空现有弹幕 |
+| `settings` | 通用设置及 `rendererSettings` | 映射通用可见性、透明度、显示区域、时间偏移和全部 Titan 专属设置；屏蔽已在 App 侧完成 |
 | `clock` | 播放位置、总时长、播放态、倍速和 seek 版本 | 调用 `play/pause/seek/setSetting` 对齐播放器 |
 | `dispose` | 渲染器退出 | 断开 `ResizeObserver` 并释放 Engine |
 
-播放时钟最多每 100 ms 推送一次。弹幕列表只在 `danmakuListVersion` 改变时重新发送，避免每帧跨 WebView 传输全部数据。
+播放时钟最多每 100 ms 推送一次。历史弹幕或轨道发生普通变化时，宿主按 `danmakuListVersion` 重新发送整表；用户发送成功时，因为本渲染器声明了 `supportsRealtimeAdd: true`，宿主改发单条 `add`，避免 `clear/reset` 清空正在显示的弹幕。
+
+实时 `add` 不显式传递 `stime`，由 Titan 读取 `timelineSync()` 的当前秒数并标记为实时弹幕。历史 `load` 仍通过 `addList()` 载入，并把 NipaPlay 的秒转换成 Titan 所需的毫秒 `stime`。
 
 ## 弹幕字段转换
 

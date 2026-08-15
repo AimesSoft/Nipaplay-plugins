@@ -40,6 +40,26 @@
       "author": "Heylyx841",
       "github": "",
       "file": "plugins/heylyx841.danmaku_limiter/heylyx841.danmaku_limiter.js"
+    },
+    {
+      "id": "steam_status_sync",
+      "name": "Steam 状态同步",
+      "version": "2.0.0",
+      "minHostVersion": "1.11.3",
+      "description": "注意：使用前务必阅读文档！将当前观看的番剧信息同步到 Steam 状态。利用 NipaPlay 内置的远程控制 API 提供观看信息，配合 NipaPlay-Steam-Bridge 独立程序设置 Steam 状态。",
+      "author": "Retr0",
+      "github": "",
+      "file": "plugins/steam_status_sync/steam_status_sync.js"
+    },
+    {
+      "id": "titan_danmaku_renderer",
+      "name": "JavaScript弹幕引擎",
+      "version": "1.0.5",
+      "minHostVersion": "1.11.4",
+      "description": "注意：仅支持 iOS、Android 端；使用实验性 JavaScript 弹幕引擎渲染 NipaPlay 弹幕",
+      "author": "Retr0",
+      "github": "",
+      "file": "plugins/titan_danmaku_renderer/titan_danmaku_renderer.js"
     }
   ]
 }

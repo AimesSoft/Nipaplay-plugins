@@ -79,6 +79,8 @@ const pluginManifest = {
 - 发布到市场的外部依赖应固定版本，并填写 64 位 SHA-256；不要引用会变化的分支或 `latest` 文件。
 - `pluginDanmakuRenderers` 必须同时申请 `danmaku.renderer` 和 `script.external`。
 - 渲染器当前只支持 `apiVersion: 1` 和 `platforms: ['android', 'ios']` 的子集；请勿提前声明 Windows。
+- 声明 `supportsRealtimeAdd: true` 的渲染器必须处理 `add` 消息，并立即显示 `message.item`，不能通过清空整表来实现。
+- 读取 `settings.value.rendererSettings` 时必须容忍对象或字段缺失，并忽略未知字段；渲染器专属设置不得改变其他渲染器的默认设置行为。
 - 渲染器引用的每个依赖 ID 必须存在于 `pluginManifest.requires`。
 - 外部代码的来源、许可和再分发条件由投稿者负责确认，并应在插件 README 中说明。
 
