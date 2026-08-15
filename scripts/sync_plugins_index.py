@@ -273,6 +273,16 @@ def _read_int_property(object_source, name, default=None):
     return int(match.group(0))
 
 
+def _read_bool_property(object_source, name, default=None):
+    start = _find_property(object_source, name)
+    if start is None:
+        return default
+    match = re.match(r"(?:true|false)\b", object_source[start:])
+    if not match:
+        raise ValueError(f"'{name}' must be a boolean")
+    return match.group(0) == "true"
+
+
 def _read_string_array_property(object_source, name, default=None):
     start = _find_property(object_source, name)
     if start is None:
@@ -331,6 +341,9 @@ def parse_danmaku_renderers(filepath):
             ),
             "platforms": _read_string_array_property(
                 object_source, "platforms", []
+            ),
+            "supportsRealtimeAdd": _read_bool_property(
+                object_source, "supportsRealtimeAdd", False
             ),
             "requires": _read_string_array_property(
                 object_source, "requires", None

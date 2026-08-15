@@ -206,6 +206,7 @@ const pluginDanmakuRenderers = [
     description: '示例 DOM 弹幕引擎',
     apiVersion: 1,
     platforms: ['android', 'ios'],
+    supportsRealtimeAdd: true,
     requires: ['engine'],
     bootstrap: String.raw`
       const root = document.getElementById('nipa-danmaku-root');
@@ -216,6 +217,9 @@ const pluginDanmakuRenderers = [
           switch (message.type) {
             case 'load':
               engine.load(message.items || []);
+              break;
+            case 'add':
+              engine.addRealtime(message.item);
               break;
             case 'settings':
               engine.setOptions(message.value || {});
@@ -241,6 +245,7 @@ const pluginDanmakuRenderers = [
 - `description`：选填，渲染器说明。
 - `apiVersion`：选填，默认 `1`；当前宿主只支持 `1`。
 - `platforms`：必填，当前只接受 `android`、`ios`，至少填写一个。Windows 尚无 WebView 渲染宿主，声明 `windows` 也不会生效。
+- `supportsRealtimeAdd`：选填，默认 `false`。设为 `true` 后，本地发送成功导致的单条列表更新会改发 `add`，适配层必须立即渲染该条弹幕；未声明时仍通过整表 `load` 保持兼容。
 - `requires`：选填，引用 `pluginManifest.requires` 的依赖 ID。省略时加载清单中的全部依赖；填写后仍按清单顺序加载选中的依赖。
 - `bootstrap`：必填，外部脚本加载完成后执行的适配代码。必须安装 `window.NipaDanmakuRenderer.handle(message)`。
 
@@ -250,6 +255,7 @@ const pluginDanmakuRenderers = [
 |---|---|---|
 | `initialize` | `apiVersion`、`pluginId`、`rendererId` | 初始化协议与身份信息 |
 | `load` | `version`、`items` | 弹幕列表变化时推送；`version` 是宿主列表版本 |
+| `add` | `item` | 仅向声明 `supportsRealtimeAdd: true` 的渲染器发送本地新弹幕；不会紧接着发送同版本整表 `load` |
 | `settings` | `value` | 弹幕显示设置变化时推送 |
 | `clock` | `positionSeconds`、`durationSeconds`、`playing`、`playbackRate`、`seekRevision` | 播放时钟，正常播放时最多每 100 ms 推送一次 |
 | `dispose` | 无 | 释放引擎、DOM、Observer 和监听器 |
@@ -260,7 +266,9 @@ const pluginDanmakuRenderers = [
 - `color`（CSS `rgb(...)`）、`isMe`；
 - 可选的 `senderId`、`danmakuId`、`timestamp`、`source`、`fontSize`、`pool`、`weight`，以及数据源扩展字段。
 
-`settings.value` 当前包含 `visible`、`opacity`、`fontSize`、`fontFamily`、`displayArea`、`scrollDurationSeconds`、`stacking`、`merge`、`blockTop`、`blockBottom`、`blockScroll`、`blockWords`、`timeOffsetSeconds`。
+`settings.value` 当前包含 `visible`、`opacity`、`fontSize`、`fontFamily`、`displayArea`、`scrollDurationSeconds`、`stacking`、`merge`、`blockTop`、`blockBottom`、`blockScroll`、`blockWords`、`timeOffsetSeconds`。可选的 `rendererSettings` 是当前渲染器的专属配置对象；目前宿主仅在选择 Titan 时发送，其中包含 `opacity`、`fontSize`、`bold`、`fontBorder`、`fontFamily`、`speedPlus`、`density`、`duration`、`limit`、`preventShade`、`offsetTop`、`offsetBottom`、`maxLength`、`isRecyclingDom`、`isRecyclingModel`、`forbidShrinkState`。适配器应忽略不认识的字段，并为缺失字段保留自身默认值。Titan 的 `speedSync` 固定为 `true`，不作为可持久化设置发送。
+
+Titan 专属设置在宿主中独立持久化，仅在 Titan 被选中时显示；其他渲染器继续使用原有通用设置入口和值域。
 
 适配层需要自行把这些通用消息映射到第三方引擎。可通过以下通道向宿主写日志或报告运行错误：
 

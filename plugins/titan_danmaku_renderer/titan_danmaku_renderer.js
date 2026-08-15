@@ -1,7 +1,7 @@
 const pluginManifest = {
   id: 'titan_danmaku_renderer',
   name: 'JavaScript弹幕引擎',
-  version: '1.0.2',
+  version: '1.0.5',
   description: '注意：仅支持 iOS、Android 端；使用实验性 JavaScript 弹幕引擎渲染 NipaPlay 弹幕',
   author: 'Retr0',
   minHostVersion: '1.11.4',
@@ -22,10 +22,12 @@ const pluginDanmakuRenderers = [
     description: 'Titan 弹幕引擎，提取自某知名弹幕视频网。原汁原味，一行未动',
     apiVersion: 1,
     platforms: ['android', 'ios'],
+    supportsRealtimeAdd: true,
     requires: ['titan-bundle'],
     bootstrap: String.raw`
       const root = document.getElementById('nipa-danmaku-root');
       const simplifiedChineseFontFamily = "-apple-system, 'PingFang SC', 'Hiragino Sans GB', 'Microsoft YaHei', 'Noto Sans CJK SC', 'Source Han Sans SC', sans-serif";
+      const defaultTitanFontFamily = "SimHei, 'Microsoft JhengHei', Arial, Helvetica, sans-serif";
       document.documentElement.lang = 'zh-CN';
       document.documentElement.style.webkitLocale = "'zh-CN'";
       root.lang = 'zh-CN';
@@ -64,7 +66,7 @@ const pluginDanmakuRenderers = [
         setting: {
           visible: true,
           opacity: 0.85,
-          fontFamily: simplifiedChineseFontFamily,
+          fontFamily: defaultTitanFontFamily,
           bold: true,
           preventShade: false,
           speedPlus: 1,
@@ -93,15 +95,19 @@ const pluginDanmakuRenderers = [
         const match = /rgb\(\s*(\d+)\s*,\s*(\d+)\s*,\s*(\d+)\s*\)/i.exec(value || '');
         return match ? ((+match[1] << 16) | (+match[2] << 8) | +match[3]) : 0xffffff;
       }
-      function load(items) {
-        const titanItems = items.map((item, index) => ({
+      function toTitanItem(item, index, realtime) {
+        const titanItem = {
           text: item.content || '',
-          stime: (+item.time || 0) * 1000,
           mode: typeToMode[item.type] || +item.originalType || 1,
           size: +item.fontSize || 25,
           color: colorToInt(item.color),
-          dmid: item.danmakuId || ('nipaplay-' + index),
-        }));
+          dmid: item.danmakuId || (realtime ? 'local-' + Date.now() : 'nipaplay-' + index),
+        };
+        if (!realtime) titanItem.stime = (+item.time || 0) * 1000;
+        return titanItem;
+      }
+      function load(items) {
+        const titanItems = items.map((item, index) => toTitanItem(item, index, false));
         rollLayer.textContent = '';
         engine.clear();
         engine.reset();
@@ -110,16 +116,30 @@ const pluginDanmakuRenderers = [
         }
         engine.seek(clock.positionSeconds + clock.offsetSeconds);
       }
+      function addRealtime(item) {
+        engine.add(toTitanItem(item || {}, 0, true));
+      }
       function applySettings(value) {
+        const rendererSettings = value.rendererSettings || {};
         engine.setSetting('visible', value.visible !== false);
-        engine.setSetting('opacity', value.opacity == null ? 1 : value.opacity);
+        engine.setSetting('opacity', rendererSettings.opacity == null ? 0.85 : rendererSettings.opacity);
         engine.setSetting('area', Math.round((value.displayArea || 1) * 100));
-        engine.setSetting(
-          'fontFamily',
-          value.fontFamily
-            ? value.fontFamily + ', ' + simplifiedChineseFontFamily
-            : simplifiedChineseFontFamily,
-        );
+        engine.setSetting('fontSize', rendererSettings.fontSize == null ? 1 : rendererSettings.fontSize);
+        engine.setSetting('bold', rendererSettings.bold !== false);
+        engine.setSetting('fontBorder', rendererSettings.fontBorder == null ? 0 : rendererSettings.fontBorder);
+        engine.setSetting('fontFamily', rendererSettings.fontFamily || defaultTitanFontFamily);
+        engine.setSetting('speedPlus', rendererSettings.speedPlus == null ? 1 : rendererSettings.speedPlus);
+        engine.setSetting('density', rendererSettings.density == null ? 1 : rendererSettings.density);
+        engine.setSetting('duration', rendererSettings.duration == null ? 4.5 : rendererSettings.duration);
+        engine.setSetting('limit', rendererSettings.limit == null ? 300 : rendererSettings.limit);
+        engine.setSetting('speedSync', true);
+        engine.setSetting('preventShade', rendererSettings.preventShade === true);
+        engine.setSetting('offsetTop', rendererSettings.offsetTop || 0);
+        engine.setSetting('offsetBottom', rendererSettings.offsetBottom || 0);
+        engine.setSetting('maxLength', rendererSettings.maxLength == null ? 50 : rendererSettings.maxLength);
+        engine.setSetting('isRecyclingDom', rendererSettings.isRecyclingDom !== false);
+        engine.setSetting('isRecyclingModel', rendererSettings.isRecyclingModel === true);
+        engine.setSetting('forbidShrinkState', rendererSettings.forbidShrinkState !== false);
         const nextOffset = +value.timeOffsetSeconds || 0;
         if (clock.offsetSeconds !== nextOffset) {
           clock.offsetSeconds = nextOffset;
@@ -146,6 +166,7 @@ const pluginDanmakuRenderers = [
         handle(message) {
           switch (message.type) {
             case 'load': load(message.items || []); break;
+            case 'add': addRealtime(message.item); break;
             case 'settings': applySettings(message.value || {}); break;
             case 'clock': syncClock(message); break;
             case 'dispose':
