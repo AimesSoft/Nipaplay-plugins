@@ -8,19 +8,25 @@
 
 ## 安装
 
-### 从 Release 下载（推荐）
+### 从源码构建（唯一）
 
-1. 前往 https://github.com/makabaka11/NipaPlay-Steam-Bridge/releases 页面，下载对应平台的可执行文件
-2. 将文件放到你喜欢的位置，例如：
-   - macOS: `/Applications/nipaplay-steam-bridge`
-   - Linux: `/usr/local/bin/nipaplay-steam-bridge`
-   - Windows: `C:\Tools\nipaplay-steam-bridge-windows.exe`
-3. 赋予可执行权限（macOS/Linux）：
-   ```bash
-   chmod +x nipaplay-steam-bridge
-   ```
+需要安装 [Bun](https://bun.sh/)。
 
-## 使用方法
+```bash
+git clone https://github.com/makabaka11/NipaPlay-Steam-Bridge.git
+cd NipaPlay-Steam-Bridge
+bun install
+
+# 编译为当前平台的独立可执行文件
+bun run build
+
+# 或指定平台
+bun run build:macos
+bun run build:linux
+bun run build:windows
+```
+
+编译产物为单个可执行文件，无需安装 Bun/Node.js 即可运行。使用方法
 
 ### 重要：首次启动（终端手动运行）
 

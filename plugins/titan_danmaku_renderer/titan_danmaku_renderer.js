@@ -1,7 +1,7 @@
 const pluginManifest = {
   id: 'titan_danmaku_renderer',
   name: 'JavaScript弹幕引擎',
-  version: '1.0.5',
+  version: '1.0.6',
   description: '注意：仅支持 iOS、Android 端；使用实验性 JavaScript 弹幕引擎渲染 NipaPlay 弹幕',
   author: 'Retr0',
   minHostVersion: '1.11.4',
@@ -81,6 +81,7 @@ const pluginDanmakuRenderers = [
           canBindMove: false,
           forbidEvents: true,
           forbidShrinkState: true,
+          offsetTop: 3,
         },
         fn: {
           timelineSync: () => clock.positionSeconds + clock.offsetSeconds,
@@ -134,7 +135,7 @@ const pluginDanmakuRenderers = [
         engine.setSetting('limit', rendererSettings.limit == null ? 300 : rendererSettings.limit);
         engine.setSetting('speedSync', true);
         engine.setSetting('preventShade', rendererSettings.preventShade === true);
-        engine.setSetting('offsetTop', rendererSettings.offsetTop || 0);
+        engine.setSetting('offsetTop', rendererSettings.offsetTop == null ? 3 : rendererSettings.offsetTop);
         engine.setSetting('offsetBottom', rendererSettings.offsetBottom || 0);
         engine.setSetting('maxLength', rendererSettings.maxLength == null ? 50 : rendererSettings.maxLength);
         engine.setSetting('isRecyclingDom', rendererSettings.isRecyclingDom !== false);

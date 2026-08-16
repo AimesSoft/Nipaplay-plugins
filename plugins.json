@@ -54,7 +54,7 @@
     {
       "id": "titan_danmaku_renderer",
       "name": "JavaScript弹幕引擎",
-      "version": "1.0.5",
+      "version": "1.0.6",
       "minHostVersion": "1.11.4",
       "description": "注意：仅支持 iOS、Android 端；使用实验性 JavaScript 弹幕引擎渲染 NipaPlay 弹幕",
       "author": "Retr0",
