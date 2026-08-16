@@ -85,9 +85,11 @@ bun run build:windows # Windows x64
 
 4. 根据提示完成 Steam Guard 验证：
    - **邮箱验证码**：终端会提示输入，输入后回车
-   - **Steam App 审批**：在手机 Steam App 中批准登录请求，然后按回车**（若直接回车无效，请输入 5 位令牌代码后回车）**
+   - **Steam App 审批**：在手机 Steam App 中批准登录请求，然后按回车 **（若直接回车无效，请输入 5 位令牌代码后回车）**
 
 5. 看到 `[steam] Logged in successfully.` 即登录成功。登录凭证会自动保存到可执行文件旁边的 `.steam-bridge-data/refresh-token.txt`，后续启动无需再次验证。
+
+6. 在 NipaPlay 的 设置-远程访问 中确保 **启用远程访问服务** 始终保持开启
 
 ### 配合 NipaPlay 插件自动启动
 
