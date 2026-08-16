@@ -10,7 +10,7 @@
 
 ### 从 Release 下载（推荐）
 
-前往 [GitHub Releases](https://github.com/makabaka11/NipaPlay-Steam-Bridge/releases/latest)
+前往 [https://github.com/makabaka11/NipaPlay-Steam-Bridge/releases/latest](https://github.com/makabaka11/NipaPlay-Steam-Bridge/releases/latest)
 下载对应平台的可执行文件：
 
 | 平台                | 文件名                                  |
