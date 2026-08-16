@@ -10,17 +10,57 @@
 
 ### 从 Release 下载（推荐）
 
-1. 前往 https://github.com/makabaka11/NipaPlay-Steam-Bridge/releases 页面，下载对应平台的可执行文件
-2. 将文件放到你喜欢的位置，例如：
-   - macOS: `/Applications/nipaplay-steam-bridge`
-   - Linux: `/usr/local/bin/nipaplay-steam-bridge`
-   - Windows: `C:\Tools\nipaplay-steam-bridge-windows.exe`
-3. 赋予可执行权限（macOS/Linux）：
-   ```bash
-   chmod +x nipaplay-steam-bridge
-   ```
+前往 [GitHub Releases](https://github.com/makabaka11/NipaPlay-Steam-Bridge/releases/latest)
+下载对应平台的可执行文件：
 
-## 使用方法
+| 平台                | 文件名                                  |
+| ------------------- | --------------------------------------- |
+| macOS Apple Silicon | `nipaplay-steam-bridge-macos-arm64`     |
+| Linux x64           | `nipaplay-steam-bridge-linux-x64`       |
+| Windows x64         | `nipaplay-steam-bridge-windows-x64.exe` |
+
+macOS 或 Linux 下载后需要添加执行权限。为方便后续命令，也可以同时将文件
+重命名为 `nipaplay-steam-bridge`：
+
+```bash
+chmod +x nipaplay-steam-bridge-*
+mv nipaplay-steam-bridge-* nipaplay-steam-bridge
+```
+
+Release 中的可执行文件已经包含 Bun 运行时和项目依赖，无需安装 Bun、Node.js
+或下载 `node_modules`。
+
+### 从源码构建
+
+需要安装 [Bun](https://bun.sh/)。
+
+```bash
+git clone <repo-url>
+cd NipaPlay-Steam-Bridge
+bun install
+
+# 编译为当前平台的独立可执行文件
+bun run build
+
+# 或指定平台
+bun run build:macos   # macOS Apple Silicon
+bun run build:linux   # Linux x64
+bun run build:windows # Windows x64
+```
+
+编译产物为单个可执行文件，无需安装 Bun/Node.js，也不需要携带
+`node_modules`：
+
+| 命令                    | 产物                                    |
+| ----------------------- | --------------------------------------- |
+| `bun run build`         | `nipaplay-steam-bridge`（当前平台）     |
+| `bun run build:macos`   | `nipaplay-steam-bridge-macos-arm64`     |
+| `bun run build:linux`   | `nipaplay-steam-bridge-linux-x64`       |
+| `bun run build:windows` | `nipaplay-steam-bridge-windows-x64.exe` |
+
+> 构建必须通过上述脚本执行。`steam-user` 会动态加载其 LZMA 回退依赖，
+> `scripts/build.ts` 会在编译时将它转换为可静态打包的引用，确保依赖被嵌入
+> 最终可执行文件。
 
 ### 重要：首次启动（终端手动运行）
 
