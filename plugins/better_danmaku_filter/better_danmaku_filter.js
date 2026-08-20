@@ -1,7 +1,7 @@
 const pluginManifest = {
   id: 'better_danmaku_filter',
   name: '智能弹幕精选',
-  version: '1.1.4',
+  version: '1.2.0',
   minHostVersion: '1.10.6',
   description: '智能精选弹幕，过滤低质量弹幕，保留优质内容',
   author: 'Retr0',
@@ -12,6 +12,7 @@ const pluginManifest = {
 var params = {
   ratio: 30,
   expectedDanmakuCount: 0,
+  filterByRatioWhenBelowExpected: false,
   windowSec: 5,
   minLen: 3,
   repeatThreshold: 60,
@@ -43,8 +44,9 @@ function readBoolSetting(id, defaultValue) {
 }
 
 function loadParams() {
-  params.ratio = readIntSetting('ratio', 30);
+  params.ratio = Math.max(1, Math.min(100, readIntSetting('ratio', 30)));
   params.expectedDanmakuCount = readIntSetting('expectedDanmakuCount', 0);
+  params.filterByRatioWhenBelowExpected = readBoolSetting('filterByRatioWhenBelowExpected', false);
   params.windowSec = readIntSetting('windowSec', 5);
   params.minLen = readIntSetting('minLen', 3);
   params.repeatThreshold = readIntSetting('repeatThreshold', 60);
@@ -68,8 +70,14 @@ function buildUIEntries() {
     {
       id: 'ratio',
       title: '最终保留比例',
-      description: '保留弹幕的百分比（5-80）',
+      description: '保留弹幕的百分比（1-100）',
       textSetting: { hintText: '30', default: '30' }
+    },
+    {
+      id: 'filterByRatioWhenBelowExpected',
+      title: '未达期望时按比例过滤',
+      description: '实际弹幕数少于期望数时，仍按最终保留比例进行精选过滤',
+      enabled: params.filterByRatioWhenBelowExpected
     },
     {
       id: 'windowSec',
@@ -230,8 +238,15 @@ function maxCharRatio(s) {
   return max / s.length;
 }
 
-function getTargetKeepCount(totalCount, p) {
-  if (p.expectedDanmakuCount > 0) {
+function shouldUseRatio(totalCount, p) {
+  if (p.expectedDanmakuCount <= 0) return true;
+  var expectedCount = Math.max(1, Math.round(p.expectedDanmakuCount * 1000));
+  return p.filterByRatioWhenBelowExpected && totalCount < expectedCount;
+}
+
+function getTargetKeepCount(totalCount, p, useRatio) {
+  if (useRatio === undefined) useRatio = shouldUseRatio(totalCount, p);
+  if (!useRatio) {
     return Math.max(1, Math.round(p.expectedDanmakuCount * 1000));
   }
   return Math.max(1, Math.round(totalCount * p.ratio / 100));
@@ -337,6 +352,8 @@ function scoreItem(item, p) {
 
 function filterDanmaku(items, p) {
   var result = [];
+  // 是否按比例截取应以过滤前的弹幕总数判断，避免前置去重后意外切换策略。
+  var useRatio = shouldUseRatio(items.length, p);
   
   for (var i = 0; i < items.length; i++) {
     var item = items[i];
@@ -448,7 +465,7 @@ function filterDanmaku(items, p) {
   var candidates = result.filter(function(r) { return !r._prefiltered; });
   candidates.sort(function(a, b) { return b._score - a._score; });
   
-  var keepCount = getTargetKeepCount(candidates.length, p);
+  var keepCount = getTargetKeepCount(candidates.length, p, useRatio);
 
   var kept = candidates.slice(0, Math.min(keepCount, candidates.length));
   
@@ -516,7 +533,8 @@ function pluginOnEvent(event) {
 
     loadParams();
 
-    var targetKeepCount = getTargetKeepCount(commentsArray.length, params);
+    var useRatio = shouldUseRatio(commentsArray.length, params);
+    var targetKeepCount = getTargetKeepCount(commentsArray.length, params, useRatio);
     if (targetKeepCount >= commentsArray.length) {
       ui.showSnackBar('弹幕精选跳过: ' + originalCount + ' 条不超过目标保留数 ' + targetKeepCount);
       return;
@@ -535,7 +553,7 @@ function pluginOnEvent(event) {
 }
 
 function pluginHandleUIAction(actionId) {
-  var switchActions = ['filterDuplicate', 'filterSpam', 'filterShort', 'filterNoise', 'allowEmoji', 'filterAdvanced'];
+  var switchActions = ['filterByRatioWhenBelowExpected', 'filterDuplicate', 'filterSpam', 'filterShort', 'filterNoise', 'allowEmoji', 'filterAdvanced'];
   
   if (switchActions.includes(actionId)) {
     params[actionId] = !params[actionId];
