@@ -46,6 +46,7 @@ SUPPORTED_PERMISSIONS = {
     "settings.modify",
     "storage",
     "system.override",
+    "url.resolve",
 }
 SUPPORTED_RENDERER_PLATFORMS = {"android", "ios"}
 SUPPORTED_RENDERER_API_VERSION = 1
