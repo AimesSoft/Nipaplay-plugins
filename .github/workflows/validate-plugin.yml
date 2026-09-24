@@ -5,6 +5,7 @@ on:
     branches: [main]
     paths:
       - 'plugins/**/*.js'
+      - 'plugins/**/*.cjs'
       - 'scripts/sync_plugins_index.py'
       - '.github/workflows/validate-plugin.yml'
 
@@ -27,3 +28,6 @@ jobs:
 
       - name: Validate all plugin manifests
         run: python scripts/sync_plugins_index.py --validate --scan
+
+      - name: Test source plugin
+        run: node --test plugins/bilibili.link_playback/bilibili.link_playback.test.cjs

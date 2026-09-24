@@ -72,6 +72,7 @@ const pluginManifest = {
 | `settings.modify` | 修改应用设置 |
 | `storage` | 使用本地存储 |
 | `system.override` | 覆盖系统级设置（如解锁下载器） |
+| `url.resolve` | 解析媒体链接并提供分集与播放地址（需包含该接口的宿主构建） |
 
 ### 外部脚本与弹幕渲染器
 
