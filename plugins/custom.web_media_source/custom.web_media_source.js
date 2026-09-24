@@ -3,7 +3,7 @@ const pluginManifest = {
   name: '哔哩哔哩链接播放',
   version: '1.0.0',
   minHostVersion: '1.11.8',
-  description: '支持哔哩哔哩普通视频链接和短链接播放，多分 P 时选择分集，并使用视频标题搜索弹幕。需要宿主支持 url.resolve 接口。',
+  description: '粘贴哔哩哔哩视频链接即可播放；如果有分 P，可以选择想看的部分，并按视频标题搜索弹幕。',
   author: 'NipaPlay',
   permissions: ['url.resolve'],
   priority: 50
