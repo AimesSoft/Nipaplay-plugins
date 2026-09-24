@@ -4,7 +4,7 @@ const pluginManifest = {
   version: '1.0.0',
   minHostVersion: '1.11.8',
   description: '让 NipaPlay 支持播放哔哩哔哩视频。使用方法：在“视频播放”页面点击“输入链接”，粘贴哔哩哔哩视频链接后点击“播放链接”。',
-  author: 'NipaPlay',
+  author: 'Misuzu',
   permissions: ['url.resolve'],
   priority: 50
 };
