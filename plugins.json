@@ -12,6 +12,16 @@
       "file": "plugins/better_danmaku_filter/better_danmaku_filter.js"
     },
     {
+      "id": "bilibili.link_playback",
+      "name": "哔哩哔哩链接播放",
+      "version": "1.0.0",
+      "minHostVersion": "1.11.8",
+      "description": "让 NipaPlay 支持播放哔哩哔哩视频。使用方法：在“视频播放”页面点击“输入链接”，粘贴哔哩哔哩视频链接后点击“播放链接”。",
+      "author": "Misuzu",
+      "github": "",
+      "file": "plugins/bilibili.link_playback/bilibili.link_playback.js"
+    },
+    {
       "id": "danmaku_regex_filter",
       "name": "弹幕正则过滤规则预设",
       "version": "1.2.3",
