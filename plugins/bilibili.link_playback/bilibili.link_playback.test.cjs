@@ -3,7 +3,7 @@ const assert = require('node:assert/strict');
 const fs = require('node:fs');
 const vm = require('node:vm');
 const path = require('node:path');
-const script = fs.readFileSync(path.join(__dirname, 'custom.web_media_source.js'), 'utf8');
+const script = fs.readFileSync(path.join(__dirname, 'bilibili.link_playback.js'), 'utf8');
 function resolver() {
   const context = vm.createContext({});
   vm.runInContext(script, context);

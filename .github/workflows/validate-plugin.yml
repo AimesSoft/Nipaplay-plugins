@@ -30,4 +30,4 @@ jobs:
         run: python scripts/sync_plugins_index.py --validate --scan
 
       - name: Test source plugin
-        run: node --test plugins/custom.web_media_source/custom.web_media_source.test.cjs
+        run: node --test plugins/bilibili.link_playback/bilibili.link_playback.test.cjs

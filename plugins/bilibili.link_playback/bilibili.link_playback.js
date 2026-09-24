@@ -1,5 +1,5 @@
 const pluginManifest = {
-  id: 'custom.web_media_source',
+  id: 'bilibili.link_playback',
   name: '哔哩哔哩链接播放',
   version: '1.0.0',
   minHostVersion: '1.11.8',

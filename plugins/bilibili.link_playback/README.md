@@ -5,7 +5,7 @@
 插件作为独立脚本导入，不随应用自动加载。
 
 1. 使用包含 `url.resolve` 接口的宿主构建。
-2. 在设置 → 插件中导入 `custom.web_media_source.js`，确认权限并启用。
+2. 在设置 → 插件中导入 `bilibili.link_playback.js`，确认权限并启用。
 3. 在“视频播放”页面点击“输入链接”，粘贴哔哩哔哩完整视频链接或短链接后点击“播放链接”。
 4. 多个条目时先选择分集，随后以标题自动搜索弹幕；确认匹配结果后开始播放。关闭搜索窗口可跳过弹幕，取消分集选择则终止本次操作。启用“跳过弹幕匹配”时不弹出搜索窗口。
 
@@ -16,7 +16,7 @@
 验证：
 
 ```sh
-node --test plugins/custom.web_media_source/custom.web_media_source.test.cjs
+node --test plugins/bilibili.link_playback/bilibili.link_playback.test.cjs
 ```
 
 ## 启动时装载
@@ -25,7 +25,7 @@ node --test plugins/custom.web_media_source/custom.web_media_source.test.cjs
 
 ```sh
 flutter build macos --release
-"$(pwd)/build/macos/Build/Products/Release/NipaPlay.app/Contents/MacOS/NipaPlay" --load-js "/绝对路径/Nipaplay-plugins/plugins/custom.web_media_source/custom.web_media_source.js"
+"$(pwd)/build/macos/Build/Products/Release/NipaPlay.app/Contents/MacOS/NipaPlay" --load-js "/绝对路径/Nipaplay-plugins/plugins/bilibili.link_playback/bilibili.link_playback.js"
 ```
 
 `--load-js=<路径>` 也可使用。启动命令在 Rust 的 `rust/src/api/startup_commands.rs` 解析；脚本装载成功或失败会通过 `rust/src/api/client_notifications.rs` 的通知接口显示应用弹窗。再次传入同一路径会重新读取并装载同版本脚本，适合测试修改。已有实例运行时，新命令会转发给该实例。首次装载后脚本会保持启用。
