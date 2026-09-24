@@ -1,9 +1,9 @@
 const pluginManifest = {
   id: 'custom.web_media_source',
-  name: '网页媒体源',
+  name: '哔哩哔哩链接播放',
   version: '1.0.0',
   minHostVersion: '1.11.8',
-  description: '解析网页链接，选择分集并使用标题匹配弹幕。需要宿主支持 url.resolve 接口。',
+  description: '支持哔哩哔哩普通视频链接和短链接播放，多分 P 时选择分集，并使用视频标题搜索弹幕。需要宿主支持 url.resolve 接口。',
   author: 'NipaPlay',
   permissions: ['url.resolve'],
   priority: 50
