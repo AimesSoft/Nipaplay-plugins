@@ -3,7 +3,7 @@ const pluginManifest = {
   name: '哔哩哔哩链接播放',
   version: '1.0.0',
   minHostVersion: '1.11.8',
-  description: '在 NipaPlay 的视频播放页面粘贴哔哩哔哩视频链接即可播放。有分 P 时会先询问要看哪一部分，再用视频标题打开弹幕搜索窗口。',
+  description: '在视频播放页粘贴哔哩哔哩链接播放，支持分 P 选择和按标题搜索弹幕',
   author: 'NipaPlay',
   permissions: ['url.resolve'],
   priority: 50
