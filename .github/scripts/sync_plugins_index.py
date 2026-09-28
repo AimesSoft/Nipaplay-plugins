@@ -7,19 +7,19 @@ is merged, but can also be invoked locally.
 
 Usage:
     # Auto-detect changes (CI mode)
-    python scripts/sync_plugins_index.py
+    python .github/scripts/sync_plugins_index.py
 
     # Specify changed files explicitly
-    python scripts/sync_plugins_index.py plugins/my.filter/my.filter.js
+    python .github/scripts/sync_plugins_index.py plugins/my.filter/my.filter.js
 
     # Full rebuild — scan every plugin directory
-    python scripts/sync_plugins_index.py --scan
+    python .github/scripts/sync_plugins_index.py --scan
 
     # Validate manifests only (no write)
-    python scripts/sync_plugins_index.py --validate
+    python .github/scripts/sync_plugins_index.py --validate
 
     # Validate every plugin (used by CI)
-    python scripts/sync_plugins_index.py --validate --scan
+    python .github/scripts/sync_plugins_index.py --validate --scan
 """
 
 import json

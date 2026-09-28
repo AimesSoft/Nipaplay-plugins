@@ -6,7 +6,8 @@ on:
     paths:
       - 'plugins/**/*.js'
       - 'plugins/**/*.cjs'
-      - 'scripts/sync_plugins_index.py'
+      - 'plugins/**/test_danmaku/*.xml'
+      - '.github/scripts/sync_plugins_index.py'
       - '.github/workflows/validate-plugin.yml'
 
 jobs:
@@ -27,7 +28,7 @@ jobs:
         run: git show origin/main:plugins.json > plugins.json 2>/dev/null || true
 
       - name: Validate all plugin manifests
-        run: python scripts/sync_plugins_index.py --validate --scan
+        run: python .github/scripts/sync_plugins_index.py --validate --scan
 
-      - name: Test source plugin
-        run: node --test plugins/bilibili.link_playback/bilibili.link_playback.test.cjs
+      - name: Test plugins
+        run: node --test plugins/*/*.test.cjs

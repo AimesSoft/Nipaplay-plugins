@@ -94,7 +94,7 @@ const pluginManifest = {
 
 ## CI 自动同步索引
 
-PR 合并到 `main` 后，GitHub Actions 会自动运行同步脚本：
+PR 合并到 `main` 后，GitHub Actions 会自动运行 [同步脚本](.github/scripts/sync_plugins_index.py)：
 
 - **新增插件** — 检测到 `plugins/` 下新目录，解析 `pluginManifest` 并追加到 `plugins.json`。
 - **更新插件** — 检测到插件文件变更，重新解析并更新对应条目。
