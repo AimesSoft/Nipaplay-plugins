@@ -1,7 +1,7 @@
 const pluginManifest = {
   id: 'better_danmaku_filter',
   name: '智能弹幕精选',
-  version: '1.3.0',
+  version: '1.3.1',
   minHostVersion: '1.10.6',
   description: '智能精选弹幕，过滤低质量弹幕，保留优质内容',
   author: 'Retr0',
@@ -11,7 +11,7 @@ const pluginManifest = {
 
 var params = {
   adaptiveMode: false,
-  adaptiveDensity: 2,
+  adaptiveDensity: 3,
   ratio: 30,
   expectedDanmakuCount: 0,
   filterByRatioWhenBelowExpected: false,
@@ -56,7 +56,7 @@ function readBoolSetting(id, defaultValue) {
 function loadParams() {
   params.ratio = Math.max(1, Math.min(100, readIntSetting('ratio', 30)));
   params.adaptiveMode = readBoolSetting('adaptiveMode', false);
-  params.adaptiveDensity = Math.max(0.2, Math.min(10, readNumberSetting('adaptiveDensity', 2)));
+  params.adaptiveDensity = Math.max(0.2, Math.min(10, readNumberSetting('adaptiveDensity', 3)));
   params.expectedDanmakuCount = Math.max(0, readNumberSetting('expectedDanmakuCount', 0));
   params.filterByRatioWhenBelowExpected = readBoolSetting('filterByRatioWhenBelowExpected', false);
   params.windowSec = Math.max(1, Math.min(30, readIntSetting('windowSec', 5)));
@@ -353,7 +353,7 @@ function scoreItem(item, p) {
   var compact = reaction ? text.replace(/(.)\1{3,}/g, '$1$1$1') : text;
   score += Math.round(charDiversity(compact) * 20);
   var repRatio = maxCharRatio(text);
-  if (!reaction && repRatio > p.repeatThreshold / 100) {
+  if (!reaction && len >= 3 && repRatio > p.repeatThreshold / 100) {
     score -= Math.round((repRatio - p.repeatThreshold / 100) * 60);
     reasons.push('重复字');
   }
@@ -426,6 +426,51 @@ function poissonOverflow(lambda, capacity) {
     cumulative += term;
   }
   return Math.max(0, Math.min(1, 1 - cumulative));
+}
+
+function explicitQualityReasons(item, p) {
+  return item._dropReasons.concat(item._scoreReasons.filter(function(reason) {
+    return reason === '签到/离题' || reason === '广告' || reason === '人身攻击' ||
+      reason === '过长遮挡' || reason === '重复字' || reason === '标点多' ||
+      reason === '纯数字' || (reason === '全英数' && p.penalty > 0) ||
+      (reason === '纯Emoji' && !p.allowEmoji);
+  }));
+}
+
+// 经验分布 F(score)=不高于该分数的普通弹幕占比；同分内容使用同一分位数。
+function scorePercentile(sortedScores, score) {
+  var left = 0, right = sortedScores.length;
+  while (left < right) {
+    var middle = Math.floor((left + right) / 2);
+    if (sortedScores[middle] <= score) left = middle + 1;
+    else right = middle;
+  }
+  return sortedScores.length ? left / sortedScores.length : 1;
+}
+
+function protectOrdinaryDanmaku(records, p, stats) {
+  var ordinary = records.filter(function(item) { return explicitQualityReasons(item, p).length === 0; });
+  var scores = ordinary.map(function(item) { return item._score; }).sort(function(a, b) { return a - b; });
+  // 小样本的分数尾部不够稳定。1000为工程参考量，而非统计置信度。
+  var volumeWeight = records.length / (records.length + 1000);
+  stats.protected = 0;
+  stats.volumeWeight = volumeWeight;
+  stats.genericTailRange = [0, 0];
+  var minTail = Infinity, maxTail = 0;
+  for (var i = 0; i < ordinary.length; i++) {
+    var item = ordinary[i];
+    item._scorePercentile = scorePercentile(scores, item._score);
+    item._genericTailLimit = 0.2 * volumeWeight * item._pressure;
+    minTail = Math.min(minTail, item._genericTailLimit);
+    maxTail = Math.max(maxTail, item._genericTailLimit);
+    // 只有既低于质量门槛、又位于足够拥挤时的经验低分尾部，才仅因低分淘汰。
+    if (!item._kept && item._scorePercentile > item._genericTailLimit) {
+      item._kept = true;
+      item._protectionReason = '稀疏/小样本低分保护';
+      stats.protected++;
+    }
+  }
+  if (ordinary.length) stats.genericTailRange = [minTail, maxTail];
 }
 
 function addPenalty(item, reason, penalty) {
@@ -525,7 +570,8 @@ function analyzeDanmaku(items, p) {
     item._density = (right - left) / 30;
     if (p.filterAdvanced && right - left < 3) item._score = Math.min(100, item._score + 8);
     if (p.adaptiveMode) {
-      var pressure = poissonOverflow(item._density * 6, Math.max(1, Math.round((p.adaptiveDensity || 2) * 6)));
+      var pressure = poissonOverflow(item._density * 6, Math.max(1, Math.round((p.adaptiveDensity || 3) * 6)));
+      item._pressure = pressure;
       item._threshold = Math.max(25, Math.min(75, distribution.center - distribution.spread * (3 - 1.5 * pressure)));
       minThreshold = Math.min(minThreshold, item._threshold);
       maxThreshold = Math.max(maxThreshold, item._threshold);
@@ -536,14 +582,13 @@ function analyzeDanmaku(items, p) {
     var ranked = records.slice().sort(compareQuality);
     for (var i = 0; i < Math.min(target, ranked.length); i++) ranked[i]._kept = true;
   } else {
+    protectOrdinaryDanmaku(records, p, stats);
     stats.distribution = distribution;
     stats.thresholdRange = records.length ? [minThreshold, maxThreshold] : [0, 0];
   }
   for (var i = 0; i < records.length; i++) {
     var item = records[i];
-    var reasons = item._dropReasons.concat(item._scoreReasons.filter(function(r) {
-      return r === '签到/离题' || r === '广告' || r === '人身攻击' || r === '过长遮挡';
-    }));
+    var reasons = explicitQualityReasons(item, p);
     if (item._kept) {
       if (reasons.length) stats.refilled++;
       continue;
@@ -571,6 +616,8 @@ function describeStats(stats) {
   if (stats.distribution) {
     lines.push('评分中位数：' + stats.distribution.center.toFixed(1) + '；稳健离散度：' + stats.distribution.spread.toFixed(1));
     lines.push('局部门槛：' + stats.thresholdRange[0].toFixed(1) + '～' + stats.thresholdRange[1].toFixed(1));
+    lines.push('稀疏/小样本低分保护：' + stats.protected + ' 条');
+    lines.push('普通内容低分尾部比例：' + (stats.genericTailRange[0] * 100).toFixed(2) + '%～' + (stats.genericTailRange[1] * 100).toFixed(2) + '%');
   }
   var keys = Object.keys(stats.reasons);
   if (keys.length) lines.push('淘汰原因（可重叠）：' + keys.map(function(k) { return k + ' ' + stats.reasons[k]; }).join('、'));
