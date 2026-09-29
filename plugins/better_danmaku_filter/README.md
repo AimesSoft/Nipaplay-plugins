@@ -109,25 +109,15 @@ node plugins/better_danmaku_filter/analyze_real_danmaku.cjs --baseline /path/to/
 
 将 `better_danmaku_filter.js` 导入 NipaPlay 插件系统。需要 NipaPlay >= 1.10.6，权限为 `danmaku.modify`、`ui.dialog`；JS 插件运行时不支持 Web。
 
-本地演示：[better_danmaku_filter.html](better_danmaku_filter.html)，可直接打开。内置与插件相同的评分、配额、自适应算法，包含全部 16 个可修改配置项，展示筛选诊断与低分保护原因。可粘贴或导入 JSON / XML 文件：JSON 支持宿主数组或带 `comments` 的对象；XML 支持 `<d p="时间,类型,字号,颜色,…">内容</d>` 格式。XML 时间单位默认毫秒，适用于当前三份测试样本；时间为秒的 XML 请切换为「秒」。JSON 时间始终按秒处理。XML 字号、颜色和原始属性会保留，属性存入 `xmlAttributes`；筛选后统一导出 JSON，保留扩展字段。旧式数字弹幕类型在导入时转为宿主类型字符串。
-
-网页配置项从插件设置定义生成，算法直接嵌入插件源码。后续修改脚本后，运行以下命令同步；CI 会检查两者一致性：
-
-```bash
-python3 .github/scripts/sync_danmaku_demo.py
-python3 .github/scripts/sync_danmaku_demo.py --check
-```
-
-在线演示：[www.retr0.xyz/better_danmaku_filter.html](https://www.retr0.xyz/better_danmaku_filter.html)（本次仅更新本地文件，未发布至网站）。
+在线演示：[www.retr0.xyz/better_danmaku_filter.html](https://www.retr0.xyz/better_danmaku_filter.html)。
 
 ## 更新日志
 
 ### v1.3.1
 
 - 自适应模式增加数量权重与经验分位数保护：少量、稀疏的普通弹幕降低仅因低分而被淘汰的可能，大量且拥挤时扩大低分尾部范围，明确质量规则保持生效。
-- 同步演示网页的完整算法与全部 16 项配置，增加内嵌源码同步工具和 CI 一致性检查。
 - 统一舒适密度的运行默认值与设置界面为 3 条/秒，避免 1–2 字内容被单字重复比例误判。
-- 补充小样本、大样本、稀疏时段、同分尾部与网页代码一致性的回归检查。
+- 补充小样本、大样本、稀疏时段与同分尾部的回归检查。
 
 ### v1.3.0
 

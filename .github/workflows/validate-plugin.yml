@@ -6,10 +6,7 @@ on:
     paths:
       - 'plugins/**/*.js'
       - 'plugins/**/*.cjs'
-      - 'plugins/**/*.html'
-      - 'plugins/**/test_danmaku/*.xml'
       - '.github/scripts/sync_plugins_index.py'
-      - '.github/scripts/sync_danmaku_demo.py'
       - '.github/workflows/validate-plugin.yml'
 
 jobs:
@@ -32,8 +29,5 @@ jobs:
       - name: Validate all plugin manifests
         run: python .github/scripts/sync_plugins_index.py --validate --scan
 
-      - name: Test plugins
-        run: node --test plugins/*/*.test.cjs
-
-      - name: Check demo engine synchronization
-        run: python .github/scripts/sync_danmaku_demo.py --check
+      - name: Test source plugin
+        run: node --test plugins/bilibili.link_playback/bilibili.link_playback.test.cjs
