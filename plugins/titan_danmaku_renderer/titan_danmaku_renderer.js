@@ -1,7 +1,7 @@
 const pluginManifest = {
   id: 'titan_danmaku_renderer',
   name: 'JavaScript弹幕引擎',
-  version: '1.0.6',
+  version: '1.0.7',
   description: '注意：仅支持 iOS、Android 端；使用实验性 JavaScript 弹幕引擎渲染 NipaPlay 弹幕',
   author: 'Retr0',
   minHostVersion: '1.11.4',
@@ -90,6 +90,42 @@ const pluginDanmakuRenderers = [
         modes: [],
       });
 
+      let trackGapRatio = 0;
+      let lastItems = [];
+      // Track spacing is driven by each danmaku model's collision height, which is
+      // assigned only in the shared base beforeCollisionCheck (every mode override
+      // chains to it). Inflating that height pushes subsequent tracks further down
+      // without changing the rendered text size.
+      function findCollisionBasePrototype(model) {
+        let proto = model && model.prototype;
+        let base = null;
+        while (proto && proto !== Object.prototype) {
+          if (Object.prototype.hasOwnProperty.call(proto, 'beforeCollisionCheck')) base = proto;
+          proto = Object.getPrototypeOf(proto);
+        }
+        return base;
+      }
+      function patchTrackGap() {
+        const modeMap = engine.manager && engine.manager.modeMap;
+        if (!modeMap) return;
+        for (const key of Object.keys(modeMap)) {
+          const model = modeMap[key] && modeMap[key].model;
+          const proto = findCollisionBasePrototype(model);
+          if (!proto || typeof proto.beforeCollisionCheck !== 'function') continue;
+          const original = proto.beforeCollisionCheck;
+          if (original.__nipaTrackGapPatched) continue;
+          const wrapped = function () {
+            original.apply(this, arguments);
+            if (trackGapRatio > 0 && typeof this.height === 'number' && this.height > 0) {
+              this.height *= 1 + trackGapRatio;
+            }
+          };
+          wrapped.__nipaTrackGapPatched = true;
+          proto.beforeCollisionCheck = wrapped;
+        }
+      }
+      patchTrackGap();
+
       const typeToMode = { scroll: 1, bottom: 4, top: 5, reverse: 6 };
       function colorToInt(value) {
         if (typeof value === 'number') return value & 0xffffff;
@@ -108,6 +144,7 @@ const pluginDanmakuRenderers = [
         return titanItem;
       }
       function load(items) {
+        lastItems = items;
         const titanItems = items.map((item, index) => toTitanItem(item, index, false));
         rollLayer.textContent = '';
         engine.clear();
@@ -145,6 +182,11 @@ const pluginDanmakuRenderers = [
         if (clock.offsetSeconds !== nextOffset) {
           clock.offsetSeconds = nextOffset;
           engine.seek(clock.positionSeconds + clock.offsetSeconds);
+        }
+        const nextTrackGap = Math.max(0, +rendererSettings.trackGap || 0);
+        if (nextTrackGap !== trackGapRatio) {
+          trackGapRatio = nextTrackGap;
+          if (lastItems.length) load(lastItems);
         }
       }
       function syncClock(message) {
