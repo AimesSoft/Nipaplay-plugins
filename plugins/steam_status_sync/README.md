@@ -64,7 +64,7 @@ bun run build:windows # Windows x64
 
 ### 重要：首次启动（终端手动运行）
 
-首次运行需要在终端中启动，以便完成 Steam Guard 认证。
+首次运行可直接通过插件启动，恢复最小化的 Bridge 窗口即可完成 Steam Guard 认证。也可以按以下步骤手动启动。
 
 1. 在可执行文件同目录下创建 `.env` 文件：
    ```bash
@@ -93,12 +93,21 @@ bun run build:windows # Windows x64
 
 ### 配合 NipaPlay 插件自动启动
 
-完成首次认证后，可在 NipaPlay 中配置自动启动：
+可在 NipaPlay 中填写配置并自动启动，也支持在 Bridge 窗口中完成首次认证：
 
-1. 打 NipaPlay → 设置 → 插件 → 插件市场 →Steam 状态同步
+1. 打开 NipaPlay → 设置 → 插件 → 插件市场 →Steam 状态同步
 2. 开启"启用 Steam 状态同步"插件，打开插件配置页
-3. 开启自动启动：在"Bridge 可执行文件路径"中填入可执行文件的完整路径（如 `/Applications/nipaplay-steam-bridge`）
-4. 确认"远程控制端口"与 NipaPlay 设置中的远程访问端口一致（默认 1180）
+3. 在“Bridge 可执行文件路径”中填入可执行文件的完整路径（如 `/Applications/nipaplay-steam-bridge`）。
+4. 在插件配置中填写 Steam 账号和密码。也可填写 Steam Guard 验证码、远程控制地址、轮询间隔、未播放时的文字、数据目录，并切换调试日志。
+5. 点击“应用配置并重启 Bridge”。后续启动 NipaPlay 时会自动使用已保存的配置。
+6. Bridge 在独立终端窗口中最小化启动。恢复窗口可查看日志、登录报错，或输入验证码；程序异常退出后窗口保留，按回车关闭。
+
+需要 NipaPlay **1.11.11 或更新版本**。macOS 使用系统 Terminal（首次可能需要允许 NipaPlay 控制 Terminal）；Windows 使用 PowerShell；Linux 需要安装 xterm 或 Konsole，以支持最小化终端。
+
+插件通过子进程环境变量传递配置，不将密码拼入命令行。密码和验证码输入框遮蔽显示，但仍使用插件现有的本机配置存储，并非加密凭据保险库。留空的配置项不覆盖系统环境或 Bridge 的 `.env`，密码中的空格会原样保留。
+
+编辑配置不会在每次输入时重启进程；点击“应用配置并重启 Bridge”后生效。停用或卸载插件、正常退出 NipaPlay（包括 `exit(0)` 前的标准退出清理）时，会停止 Bridge 及其子进程；最小化 NipaPlay 到托盘时保持运行。
+确认“远程控制端口”与 NipaPlay 设置中的远程访问端口一致（默认 1180）。
 
 之后每次 NipaPlay 启动并启用插件时，Bridge 会自动启动；关闭插件时自动停止。
 
@@ -112,7 +121,7 @@ bun run build:windows # Windows x64
 STEAMUSERNAME=xxx STEAMPASSWORD=xxx NIPAPLAY_API_PORT=1180 ./nipaplay-steam-bridge
 ```
 
-NipaPlay 插件自动启动时会自动设置 `NIPAPLAY_API_PORT` 环境变量，无需额外配置。
+NipaPlay 插件自动启动时会设置 `NIPAPLAY_API_PORT`，并将插件中填写的其他配置映射为下表中的同名环境变量。端口应与 NipaPlay 远程访问设置一致。
 
 ## 环境变量
 

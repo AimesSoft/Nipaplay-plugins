@@ -170,6 +170,8 @@ const pluginUIEntries = [
 
 `textSetting` 对象字段：
 
+- `obscureText`：可选布尔值，默认 `false`，设为 `true` 时遮蔽输入并禁用输入建议。只影响显示，配置仍使用现有的本机持久化存储。
+
 - `hintText`：可选，文本框占位提示。
 - `default`：可选，字符串，默认值。用户首次看到文本框时的初始内容。
 
@@ -537,6 +539,22 @@ dev.logError('错误信息');
 // 启用/禁用内置下载器
 system.setDownloaderEnabled(true);
 ```
+
+### 4.7.1 `process` 对象（需要 `system.override` 权限）
+
+```js
+process.start('/path/to/bridge', [], { NIPAPLAY_API_PORT: '1180' }, {
+  window: 'minimized'
+});
+process.isRunning();
+process.stop();
+```
+
+`start(executable, args?, env?, options?)` 返回是否接受启动请求，实际启动结果是异步的；`isRunning()` 在启动等待期间也返回 `true`，避免重复启动。每个插件同时管理一个进程，已有进程时再次 `start` 返回 `false`。需要重启时先 `stop()` 再 `start()`，宿主会等待旧进程清理。
+
+`env` 在继承的环境变量上追加配置，值按原样传递，不需要手动进行 shell 转义。`options.window: 'minimized'`（NipaPlay 1.11.11 起）在独立终端中最小化启动，支持交互输入，并在异常退出后等待回车以保留错误输出。macOS 使用 Terminal，Windows 使用 PowerShell，Linux 需要 xterm 或 Konsole。不传 `options` 保持无独立终端的启动方式。
+
+宿主在插件卸载、销毁及桌面标准退出流程中清理进程树；最小化到托盘时不会清理。`stop()` 返回是否提交了停止请求，清理异步执行，标准退出会等待完成。
 
 ### 4.8 `settings` 对象
 
