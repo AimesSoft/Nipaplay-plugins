@@ -6,8 +6,8 @@
 var pluginManifest = {
   id: 'steam_status_sync',
   name: 'Steam 状态同步',
-  version: '2.0.0',
-  minHostVersion: '1.11.3',
+  version: '2.1.0',
+  minHostVersion: '1.11.11',
   description:
     '注意：使用前务必阅读文档！' +
     '将当前观看的番剧信息同步到 Steam 状态。' +
@@ -35,7 +35,7 @@ var pluginUIEntries = [
     isTextInput: true,
     textSetting: {
       hintText: '默认 1180',
-      defaultValue: '1180'
+      default: '1180'
     }
   },
   {
@@ -45,8 +45,82 @@ var pluginUIEntries = [
     isTextInput: true,
     textSetting: {
       hintText: '例如 /path/to/nipaplay-steam-bridge',
-      defaultValue: ''
+      default: ''
     }
+  },
+  {
+    "id": "steamUsername",
+    "title": "Steam 账号",
+    "description": "首次登录使用的 Steam 账号名",
+    "textSetting": {
+      "hintText": "STEAMUSERNAME",
+      "obscureText": false
+    }
+  },
+  {
+    "id": "steamPassword",
+    "title": "Steam 密码",
+    "description": "首次登录使用；配置保存在本机，输入时遮蔽显示",
+    "textSetting": {
+      "hintText": "STEAMPASSWORD",
+      "obscureText": true
+    }
+  },
+  {
+    "id": "steamGuard",
+    "title": "Steam Guard 验证码",
+    "description": "可留空，在 Bridge 窗口中交互验证",
+    "textSetting": {
+      "hintText": "STEAMGUARD",
+      "obscureText": true
+    }
+  },
+  {
+    "id": "apiHost",
+    "title": "远程控制地址",
+    "description": "留空使用 127.0.0.1",
+    "textSetting": {
+      "hintText": "NIPAPLAY_API_HOST",
+      "obscureText": false
+    }
+  },
+  {
+    "id": "pollInterval",
+    "title": "轮询间隔（毫秒）",
+    "description": "留空使用 3000",
+    "textSetting": {
+      "hintText": "POLL_INTERVAL_MS",
+      "obscureText": false
+    }
+  },
+  {
+    "id": "notPlayingText",
+    "title": "未播放时的状态文字",
+    "description": "留空使用 NipaPlay",
+    "textSetting": {
+      "hintText": "NOT_PLAYING_TEXT",
+      "obscureText": false
+    }
+  },
+  {
+    "id": "dataDirectory",
+    "title": "Bridge 数据目录",
+    "description": "留空使用可执行文件旁的 .steam-bridge-data/",
+    "textSetting": {
+      "hintText": "BRIDGE_DATA_DIR",
+      "obscureText": false
+    }
+  },
+  {
+    "id": "steamDebug",
+    "title": "启用 Steam 调试日志",
+    "description": "在独立 Bridge 窗口中显示调试信息；修改后点击应用配置并重启",
+    "enabled": false
+  },
+  {
+    "id": "restartBridge",
+    "title": "应用配置并重启 Bridge",
+    "description": "编辑配置后点击此项。独立终端最小化启动，可还原查看报错或完成验证。"
   }
 ];
 
@@ -75,9 +149,16 @@ function _startBridgeIfNeeded() {
 
   var port = _getRemoteControlPort();
   var env = { NIPAPLAY_API_PORT: String(port) };
+  var fields = {"STEAMUSERNAME": "steamUsername", "STEAMPASSWORD": "steamPassword", "STEAMGUARD": "steamGuard", "NIPAPLAY_API_HOST": "apiHost", "POLL_INTERVAL_MS": "pollInterval", "NOT_PLAYING_TEXT": "notPlayingText", "BRIDGE_DATA_DIR": "dataDirectory"};
+  for (var key in fields) {
+    var value = settings.getText(fields[key]);
+    // Preserve passwords and user text exactly; empty fields allow Bridge defaults/.env.
+    if (value !== '') env[key] = value;
+  }
+  if (settings.getSwitch('steamDebug')) env.STEAM_DEBUG = '1';
 
   dev.log('Steam 状态同步：正在启动 Bridge，路径: ' + path + '，端口: ' + port);
-  var result = process.start(path, [], env);
+  var result = process.start(path, [], env, { window: 'minimized' });
   if (result) {
     dev.log('Steam 状态同步：Bridge 启动命令已发送');
   } else {
@@ -127,6 +208,18 @@ function pluginOnEvent(event) {
 // ---- UI 动作处理 ----
 
 function pluginHandleUIAction(actionId) {
+  if (actionId === 'restartBridge') {
+    _stopBridgeIfNeeded();
+    if (_enabled) _startBridgeIfNeeded();
+    return {
+      type: 'text', title: 'Steam 状态同步',
+      content: _enabled ? '已提交重启请求。请还原 Bridge 窗口查看启动结果或完成 Steam Guard 验证。' : '请先启用 Steam 状态同步。'
+    };
+  }
+  if (actionId === 'steamDebug') {
+    settings.setSwitch('steamDebug', !settings.getSwitch('steamDebug'));
+    return { type: 'text', title: 'Steam 调试日志', content: '已保存，请点击“应用配置并重启 Bridge”生效。' };
+  }
   if (actionId === 'enable') {
     var currentEnabled = settings.getSwitch('enable');
     var newEnabled = !currentEnabled;
