@@ -7,7 +7,7 @@ var pluginManifest = {
   id: 'steam_status_sync',
   name: 'Steam 状态同步',
   version: '2.1.0',
-  minHostVersion: '1.11.11',
+  minHostVersion: '1.11.10',
   description:
     '注意：使用前务必阅读文档！' +
     '将当前观看的番剧信息同步到 Steam 状态。' +
