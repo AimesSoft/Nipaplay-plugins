@@ -22,17 +22,6 @@
 
 规则参考自社区整理的弹幕过滤方案。
 
-## 真实样本过滤
-
-在仓库根目录执行（需要 Python 3 和 Node.js）：
-
-```sh
-node --test plugins/danmaku_regex_filter/danmaku_regex_filter.test.cjs
-python3 plugins/danmaku_regex_filter/filter_samples.py plugins/danmaku_regex_filter/*_danmaku_*.json --output-dir plugins/danmaku_regex_filter/filter_results
-```
-
-脚本读取插件当前规则，强制开启全部正则，分别输出保留弹幕 `*_filtered.json/txt`、被过滤弹幕与全部命中规则 `*_removed.json/txt`，以及 `过滤报告.md`。JSON 保留原字段、顺序和大整数 cid，原始文件不改动。可用 `--baseline-plugin 旧版本.js` 对比优化前后的加群命中情况。离线匹配使用 Node.js RegExp，结果不代表播放器内显示验证。
-
 ## 更新日志
 
 ### v1.3.1
